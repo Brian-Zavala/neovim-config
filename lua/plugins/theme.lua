@@ -1,0 +1,1 @@
+/home/baz/.config/omarchy/current/theme/neovim.lua

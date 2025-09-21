@@ -1,0 +1,40 @@
+# Test files
+tt.*
+.tests
+foo.*
+
+# Documentation
+doc/tags
+
+# Debug and reproduction
+debug
+.repro
+
+# Logs
+*.log
+
+# Data directory
+data
+
+# Lazy.nvim plugin directory
+lazy
+
+# Neovim state and cache
+state
+cache
+
+# Local LSP config
+.luarc.json
+
+# Personal spell files
+spell/*.add
+spell/*.add.spl
+
+# Swap and backup files
+*.swp
+*.bak
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
