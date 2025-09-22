@@ -74,3 +74,11 @@ _G.TermHereToggle = function()
   -- Save tab-local state
   vim.t.termhere_state = { buf = buf, win = term_win }
 end
+
+-- Autosave all buffers when switching buffers or losing focus
+vim.api.nvim_create_autocmd({ "BufLeave", "FocusLost" }, {
+  pattern = "*",
+  callback = function()
+    vim.cmd("silent! wall")
+  end,
+})
