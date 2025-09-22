@@ -48,7 +48,7 @@ return {
       },
     },
   },
-  -- Configure emmet-ls LSP server
+  -- Configure emmet-ls and HTML LSP servers with better nested support
   {
     "neovim/nvim-lspconfig",
     opts = function(_, opts)
@@ -60,6 +60,8 @@ return {
       end
 
       opts.servers = opts.servers or {}
+
+      -- Enhanced emmet configuration
       opts.servers.emmet_language_server = {
         filetypes = {
           "html",
@@ -92,11 +94,68 @@ return {
             ["typescript.tsx"] = "typescriptreact",
           },
           variables = {},
-          preferences = {},
+          preferences = {
+            ["emmet.triggerExpansionOnTab"] = true,
+            ["emmet.includeLanguages"] = {
+              javascript = "javascriptreact",
+              typescript = "typescriptreact",
+            },
+          },
         },
         capabilities = capabilities,
       }
+
+      -- Also configure html-lsp for better HTML support
+      opts.servers.html = {
+        filetypes = { "html", "htmldjango", "eruby" },
+        init_options = {
+          configurationSection = { "html", "css", "javascript" },
+          embeddedLanguages = {
+            css = true,
+            javascript = true,
+          },
+          provideFormatter = false, -- Use prettier instead
+        },
+        capabilities = capabilities,
+      }
+
       return opts
+    end,
+  },
+  -- Add custom keymaps for better emmet expansion in nested contexts
+  {
+    "neovim/nvim-lspconfig",
+    config = function()
+      -- Add custom keybinding for expanding Emmet abbreviation at any position
+      vim.keymap.set("i", "<M-e>", function()
+        -- This will work better for nested contexts
+        vim.cmd("stopinsert")
+        vim.lsp.buf.execute_command({
+          command = "_emmet.expandAbbreviation",
+        })
+        vim.cmd("startinsert!")
+      end, { desc = "Expand Emmet abbreviation (nested)" })
+
+      -- Alternative method using direct emmet expansion
+      vim.keymap.set("i", "<C-y>e", function()
+        local line = vim.api.nvim_get_current_line()
+        local col = vim.api.nvim_win_get_cursor(0)[2]
+        local word_start = col
+
+        -- Find the start of the abbreviation
+        while word_start > 0 and line:sub(word_start, word_start):match("[%w%+%*%>%.%#%$%-%@%!%[%]%(%)]+") do
+          word_start = word_start - 1
+        end
+
+        local abbr = line:sub(word_start + 1, col)
+        if abbr and #abbr > 0 then
+          -- Try to expand via LSP
+          vim.lsp.buf.execute_command({
+            command = "emmet.expand",
+            arguments = { vim.api.nvim_buf_get_name(0), vim.fn.line(".") - 1, col },
+          })
+        end
+      end, { desc = "Expand Emmet in place" })
     end,
   },
   -- Add custom snippets for lorem text using LuaSnip (works with blink.cmp)
@@ -134,12 +193,13 @@ return {
       end
     end,
   },
-  -- Ensure Mason installs emmet-language-server
+  -- Ensure Mason installs emmet-language-server and HTML LSP
   {
     "mason-org/mason.nvim",
     opts = {
       ensure_installed = {
         "emmet-language-server",
+        "html-lsp",
       },
     },
   },
