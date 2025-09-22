@@ -1,58 +1,38 @@
 return {
-  -- Enable blink.cmp extra if not already enabled
+  -- Configure blink.cmp
   {
     "saghen/blink.cmp",
     dependencies = {
       "rafamadriz/friendly-snippets",
     },
     opts = {
-      -- Configure sources to include LSP (which includes emmet-ls)
       sources = {
         default = { "lsp", "path", "snippets", "buffer" },
-        -- Prioritize LSP completions for better emmet support
         providers = {
           lsp = {
-            score_offset = 100, -- Higher priority for LSP completions
+            score_offset = 100,
           },
         },
       },
-      -- Use super-tab preset for Tab expansion
       keymap = {
         preset = "super-tab",
-        -- Custom keymaps for emmet-like expansion
-        ["<Tab>"] = {
-          function(cmp)
-            if cmp.snippet_active() then
-              return cmp.accept()
-            else
-              return cmp.select_and_accept()
-            end
-          end,
-          "snippet_forward",
-          "fallback",
-        },
-        ["<C-e>"] = { "select_and_accept" }, -- Ctrl+E to expand
       },
-      -- Enable experimental features for better emmet support
       completion = {
         accept = {
-          -- Auto-insert brackets and parentheses
           auto_brackets = {
             enabled = true,
           },
         },
-        -- Show docs automatically
         documentation = {
           auto_show = true,
         },
       },
     },
   },
-  -- Configure emmet-ls and HTML LSP servers with better nested support
+  -- Configure emmet-language-server
   {
     "neovim/nvim-lspconfig",
     opts = function(_, opts)
-      -- Get blink.cmp capabilities
       local has_blink, blink = pcall(require, "blink.cmp")
       local capabilities = vim.lsp.protocol.make_client_capabilities()
       if has_blink then
@@ -61,104 +41,150 @@ return {
 
       opts.servers = opts.servers or {}
 
-      -- Enhanced emmet configuration
       opts.servers.emmet_language_server = {
         filetypes = {
           "html",
-          "typescriptreact",
-          "javascriptreact",
-          "javascript",
-          "typescript",
           "css",
-          "sass",
           "scss",
-          "less",
-          "jsx",
-          "tsx",
+          "javascript",
+          "javascriptreact",
+          "typescript",
+          "typescriptreact",
           "vue",
           "svelte",
-          "xml",
-          "php",
-          "eruby",
-          "htmldjango",
-        },
-        init_options = {
-          showSuggestionsAsSnippets = true,
-          showExpandedAbbreviation = "always",
-          showAbbreviationSuggestions = true,
-          includeLanguages = {
-            javascript = "javascriptreact",
-            typescript = "typescriptreact",
-            vue = "html",
-            ["javascript.jsx"] = "javascriptreact",
-            ["typescript.tsx"] = "typescriptreact",
-          },
-          variables = {},
-          preferences = {
-            ["emmet.triggerExpansionOnTab"] = true,
-            ["emmet.includeLanguages"] = {
-              javascript = "javascriptreact",
-              typescript = "typescriptreact",
-            },
-          },
+          "jsx",
+          "tsx",
         },
         capabilities = capabilities,
       }
 
-      -- Also configure html-lsp for better HTML support
       opts.servers.html = {
-        filetypes = { "html", "htmldjango", "eruby" },
-        init_options = {
-          configurationSection = { "html", "css", "javascript" },
-          embeddedLanguages = {
-            css = true,
-            javascript = true,
-          },
-          provideFormatter = false, -- Use prettier instead
-        },
+        filetypes = { "html" },
         capabilities = capabilities,
       }
 
       return opts
     end,
   },
-  -- Add custom keymaps for better emmet expansion in nested contexts
+  -- Add a direct Emmet expansion keybinding that works for ALL abbreviations
   {
     "neovim/nvim-lspconfig",
     config = function()
-      -- Add custom keybinding for expanding Emmet abbreviation at any position
-      vim.keymap.set("i", "<M-e>", function()
-        -- This will work better for nested contexts
-        vim.cmd("stopinsert")
-        vim.lsp.buf.execute_command({
-          command = "_emmet.expandAbbreviation",
-        })
-        vim.cmd("startinsert!")
-      end, { desc = "Expand Emmet abbreviation (nested)" })
+      -- Create a universal Ctrl+E keybinding for Emmet expansion
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = { "html", "css", "javascriptreact", "typescriptreact", "vue", "svelte" },
+        callback = function(ev)
+          vim.keymap.set("i", "<C-e>", function()
+            -- Get the current line and cursor position
+            local line = vim.api.nvim_get_current_line()
+            local row, col = unpack(vim.api.nvim_win_get_cursor(0))
 
-      -- Alternative method using direct emmet expansion
-      vim.keymap.set("i", "<C-y>e", function()
-        local line = vim.api.nvim_get_current_line()
-        local col = vim.api.nvim_win_get_cursor(0)[2]
-        local word_start = col
+            -- Find the start of the abbreviation (including numbers and operators)
+            local start_col = col
+            while start_col > 0 do
+              local char = line:sub(start_col, start_col)
+              if not char:match("[%w%+%*%>%.%#%$%-%@%!%[%]%(%)%{%}]") then
+                break
+              end
+              start_col = start_col - 1
+            end
 
-        -- Find the start of the abbreviation
-        while word_start > 0 and line:sub(word_start, word_start):match("[%w%+%*%>%.%#%$%-%@%!%[%]%(%)]+") do
-          word_start = word_start - 1
-        end
+            -- Extract the abbreviation
+            local abbr = line:sub(start_col + 1, col)
 
-        local abbr = line:sub(word_start + 1, col)
-        if abbr and #abbr > 0 then
-          -- Try to expand via LSP
-          vim.lsp.buf.execute_command({
-            command = "emmet.expand",
-            arguments = { vim.api.nvim_buf_get_name(0), vim.fn.line(".") - 1, col },
+            if abbr == "" then
+              -- No abbreviation found, fallback to default behavior
+              return vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<C-e>", true, false, true), "n", false)
+            end
+
+            -- Delete the abbreviation text
+            vim.api.nvim_buf_set_text(0, row - 1, start_col, row - 1, col, {""})
+
+            -- Manually expand common patterns that emmet-language-server might miss
+            local expanded = nil
+
+            -- Handle list patterns specifically
+            local list_pattern = "^([uo]l)>li%*(%d+)$"
+            local list_match = abbr:match(list_pattern)
+            if list_match then
+              local tag_type = abbr:match("^([uo]l)")
+              local count = tonumber(abbr:match("%*(%d+)$"))
+              local items = {}
+              for i = 1, count do
+                table.insert(items, "  <li></li>")
+              end
+              expanded = string.format("<%s>\n%s\n</%s>", tag_type, table.concat(items, "\n"), tag_type)
+            end
+
+            -- Handle simple li*N pattern
+            local li_count = abbr:match("^li%*(%d+)$")
+            if li_count then
+              local count = tonumber(li_count)
+              local items = {}
+              for i = 1, count do
+                table.insert(items, "<li></li>")
+              end
+              expanded = table.concat(items, "\n")
+            end
+
+            -- Handle ul*N or ol*N pattern
+            local list_type, list_num = abbr:match("^([uo]l)%*(%d+)$")
+            if list_type and list_num then
+              local count = tonumber(list_num)
+              local lists = {}
+              for i = 1, count do
+                table.insert(lists, string.format("<%s></%s>", list_type, list_type))
+              end
+              expanded = table.concat(lists, "\n")
+            end
+
+            -- Handle div*N and other tag*N patterns
+            local tag, tag_count = abbr:match("^(%w+)%*(%d+)$")
+            if tag and tag_count and not expanded then
+              local count = tonumber(tag_count)
+              local tags = {}
+              for i = 1, count do
+                table.insert(tags, string.format("<%s></%s>", tag, tag))
+              end
+              expanded = table.concat(tags, "\n")
+            end
+
+            if expanded then
+              -- Insert the expanded text
+              local lines = vim.split(expanded, "\n")
+              vim.api.nvim_put(lines, "c", false, true)
+
+              -- Move cursor to first tag content
+              local first_close = expanded:find("><")
+              if first_close then
+                vim.api.nvim_win_set_cursor(0, {row, start_col + first_close})
+              end
+            else
+              -- Fallback to LSP expansion for complex patterns
+              -- Restore the abbreviation first
+              vim.api.nvim_buf_set_text(0, row - 1, start_col, row - 1, start_col, {abbr})
+
+              -- Try to trigger completion
+              vim.defer_fn(function()
+                require("blink.cmp").show()
+                vim.defer_fn(function()
+                  local cmp = require("blink.cmp")
+                  if cmp.is_visible() then
+                    cmp.accept()
+                  end
+                end, 100)
+              end, 10)
+            end
+          end, {
+            buffer = ev.buf,
+            desc = "Expand Emmet abbreviation",
+            silent = true
           })
-        end
-      end, { desc = "Expand Emmet in place" })
+        end,
+      })
     end,
   },
-  -- Add custom snippets for lorem text using LuaSnip (works with blink.cmp)
+  -- LuaSnip for lorem text
   {
     "L3MON4D3/LuaSnip",
     build = "make install_jsregexp",
@@ -167,7 +193,6 @@ return {
       local s = ls.snippet
       local t = ls.text_node
 
-      -- Define lorem snippets for multiple file types
       local lorem_snippets = {
         s("lor", {
           t("Lorem ipsum dolor sit amet, consectetur adipiscing elit."),
@@ -175,32 +200,24 @@ return {
         s("lorem", {
           t("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."),
         }),
-        s("lorem5", {
-          t({
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-            "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-            "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.",
-            "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum.",
-            "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia.",
-          }),
-        }),
       }
 
-      -- Add snippets to relevant file types
-      local ft_list = { "html", "javascriptreact", "typescriptreact", "vue", "svelte", "php", "eruby", "htmldjango" }
+      local ft_list = { "html", "javascriptreact", "typescriptreact", "vue", "svelte" }
       for _, ft in ipairs(ft_list) do
         ls.add_snippets(ft, lorem_snippets)
       end
     end,
   },
-  -- Ensure Mason installs emmet-language-server and HTML LSP
+  -- Ensure Mason installs emmet-language-server
   {
     "mason-org/mason.nvim",
-    opts = {
-      ensure_installed = {
+    opts = function(_, opts)
+      opts.ensure_installed = opts.ensure_installed or {}
+      vim.list_extend(opts.ensure_installed, {
         "emmet-language-server",
         "html-lsp",
-      },
-    },
+      })
+      return opts
+    end,
   },
 }
