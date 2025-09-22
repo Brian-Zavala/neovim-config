@@ -1,78 +1,4 @@
 return {
-  -- Configure blink.cmp
-  {
-    "saghen/blink.cmp",
-    dependencies = {
-      "rafamadriz/friendly-snippets",
-    },
-    opts = {
-      sources = {
-        default = { "lsp", "path", "snippets", "buffer" },
-        providers = {
-          lsp = {
-            score_offset = 100,
-          },
-        },
-      },
-      keymap = {
-        preset = "default",
-        -- Override Tab to always fallback (let our Emmet handle it)
-        ["<Tab>"] = { "fallback" },
-        ["<S-Tab>"] = { "fallback" },
-        -- Use Ctrl+N/P for navigation
-        ["<C-n>"] = { "select_next", "fallback" },
-        ["<C-p>"] = { "select_prev", "fallback" },
-        ["<CR>"] = { "accept", "fallback" },
-      },
-      completion = {
-        accept = {
-          auto_brackets = {
-            enabled = true,
-          },
-        },
-        documentation = {
-          auto_show = true,
-        },
-      },
-    },
-  },
-  -- Configure emmet-language-server with basic settings
-  {
-    "neovim/nvim-lspconfig",
-    opts = function(_, opts)
-      local has_blink, blink = pcall(require, "blink.cmp")
-      local capabilities = vim.lsp.protocol.make_client_capabilities()
-      if has_blink then
-        capabilities = blink.get_lsp_capabilities(capabilities)
-      end
-
-      opts.servers = opts.servers or {}
-
-      opts.servers.emmet_language_server = {
-        filetypes = {
-          "html",
-          "css",
-          "scss",
-          "javascript",
-          "javascriptreact",
-          "typescript",
-          "typescriptreact",
-          "vue",
-          "svelte",
-          "jsx",
-          "tsx",
-        },
-        capabilities = capabilities,
-      }
-
-      opts.servers.html = {
-        filetypes = { "html" },
-        capabilities = capabilities,
-      }
-
-      return opts
-    end,
-  },
   -- Custom Emmet expansion with boilerplate attributes for ALL HTML tags
   {
     "neovim/nvim-lspconfig",
@@ -111,94 +37,139 @@ return {
             -- Delete the abbreviation text
             vim.api.nvim_buf_set_text(0, row - 1, start_col, row - 1, col, {""})
 
-            -- Define boilerplate attributes for ALL HTML tags
+            -- Define comprehensive boilerplate attributes for ALL HTML5 tags
             local tag_attributes = {
-              -- Form elements
-              form = 'action="" method="POST"',
-              input = 'type="text" name="" id="" value=""',
-              button = 'type="button" name="" id=""',
-              select = 'name="" id=""',
-              option = 'value=""',
-              textarea = 'name="" id="" rows="10" cols="30"',
-              label = 'for=""',
-              fieldset = 'name=""',
-              legend = '',
+              -- Form elements with all common attributes
+              form = 'action="" method="POST" enctype="multipart/form-data" name="" id="" class="" autocomplete="on"',
+              input = 'type="text" name="" id="" value="" placeholder="" required class="" autocomplete="" minlength="" maxlength="" pattern=""',
+              button = 'type="button" name="" id="" class="" onclick="" disabled=""',
+              select = 'name="" id="" class="" required multiple size=""',
+              option = 'value="" selected disabled',
+              textarea = 'name="" id="" rows="10" cols="30" placeholder="" required class="" minlength="" maxlength=""',
+              label = 'for="" class=""',
+              fieldset = 'name="" class="" disabled',
+              legend = 'class=""',
               datalist = 'id=""',
-              output = 'name="" for=""',
+              output = 'name="" for="" class=""',
+              optgroup = 'label="" disabled',
 
-              -- Media elements
-              img = 'src="" alt="" width="" height=""',
-              video = 'src="" controls width="" height=""',
-              audio = 'src="" controls',
-              source = 'src="" type=""',
-              track = 'src="" kind="" srclang="" label=""',
-              picture = '',
+              -- Media elements with comprehensive attributes
+              img = 'src="" alt="" width="" height="" loading="lazy" decoding="async" class="" srcset="" sizes=""',
+              video = 'src="" controls width="" height="" autoplay muted loop poster="" preload="auto" class=""',
+              audio = 'src="" controls autoplay loop muted preload="auto"',
+              source = 'src="" type="" media="" srcset="" sizes=""',
+              track = 'src="" kind="subtitles" srclang="" label="" default',
+              picture = 'class=""',
 
-              -- Links and meta
-              a = 'href="" title=""',
-              link = 'rel="stylesheet" href=""',
-              meta = 'name="" content=""',
-              base = 'href=""',
+              -- Links and meta with all attributes
+              a = 'href="" title="" target="" rel="noopener noreferrer" class="" download="" hreflang=""',
+              link = 'rel="stylesheet" href="" type="text/css" media="all" crossorigin="anonymous" integrity=""',
+              meta = 'name="" content="" charset="UTF-8" http-equiv="" property=""',
+              base = 'href="" target=""',
 
-              -- Embedding
-              iframe = 'src="" width="" height="" frameborder="0"',
-              embed = 'src="" type="" width="" height=""',
-              object = 'data="" type="" width="" height=""',
+              -- Embedding with security attributes
+              iframe = 'src="" width="" height="" frameborder="0" loading="lazy" sandbox="" allow="" class="" title=""',
+              embed = 'src="" type="" width="" height="" class=""',
+              object = 'data="" type="" width="" height="" class="" name=""',
               param = 'name="" value=""',
 
-              -- Tables
-              table = 'border="0" cellpadding="0" cellspacing="0"',
-              th = 'scope="col"',
-              td = 'valign="top"',
-              caption = '',
+              -- Tables with accessibility
+              table = 'class="" id="" role="table" aria-label=""',
+              th = 'scope="col" class="" colspan="" rowspan="" abbr=""',
+              td = 'class="" colspan="" rowspan="" headers=""',
+              caption = 'class=""',
+              thead = 'class=""',
+              tbody = 'class=""',
+              tfoot = 'class=""',
+              tr = 'class=""',
+              col = 'span="" class=""',
+              colgroup = 'span="" class=""',
 
-              -- Structure
-              div = 'class="" id=""',
-              span = 'class=""',
-              section = 'class="" id=""',
-              article = 'class="" id=""',
-              aside = 'class=""',
-              header = 'class=""',
-              footer = 'class=""',
-              main = 'class=""',
-              nav = 'class=""',
+              -- HTML5 Semantic Structure with ARIA
+              div = 'class="" id="" role="" aria-label="" data-""',
+              span = 'class="" id="" role="" aria-label=""',
+              section = 'class="" id="" role="" aria-labelledby="" aria-describedby=""',
+              article = 'class="" id="" role="article" aria-labelledby="" itemscope itemtype=""',
+              aside = 'class="" id="" role="complementary" aria-label=""',
+              header = 'class="" id="" role="banner"',
+              footer = 'class="" id="" role="contentinfo"',
+              main = 'class="" id="" role="main"',
+              nav = 'class="" id="" role="navigation" aria-label=""',
+              figure = 'class="" id="" role="figure"',
+              figcaption = 'class=""',
 
-              -- Interactive
-              details = 'open',
-              dialog = 'open',
-              canvas = 'width="" height="" id=""',
+              -- Interactive HTML5 elements
+              details = 'open class="" id=""',
+              summary = 'class=""',
+              dialog = 'open class="" id="" role="dialog" aria-labelledby="" aria-describedby=""',
+              canvas = 'width="" height="" id="" class=""',
+              svg = 'width="" height="" viewBox="" xmlns="http://www.w3.org/2000/svg" class="" role="img" aria-label=""',
 
-              -- Others
-              script = 'src="" type="text/javascript"',
-              style = 'type="text/css"',
-              area = 'shape="" coords="" href="" alt=""',
-              map = 'name=""',
-              meter = 'value="" min="" max=""',
-              progress = 'value="" max=""',
+              -- Script and style with modern attributes
+              script = 'src="" type="module" async defer crossorigin="anonymous" integrity="" nonce=""',
+              style = 'type="text/css" media="all" nonce=""',
+              noscript = 'class=""',
+              template = 'id="" class=""',
 
-              -- Lists
-              ul = 'class=""',
-              ol = 'class=""',
-              li = '',
-              dl = 'class=""',
-              dt = '',
-              dd = '',
+              -- Interactive map
+              area = 'shape="rect" coords="" href="" alt="" target="" rel=""',
+              map = 'name="" id=""',
 
-              -- Text
-              p = 'class=""',
-              h1 = 'class="" id=""',
-              h2 = 'class="" id=""',
-              h3 = 'class="" id=""',
-              h4 = 'class="" id=""',
-              h5 = 'class="" id=""',
-              h6 = 'class="" id=""',
-              blockquote = 'cite=""',
-              cite = '',
-              code = 'class=""',
-              pre = 'class=""',
+              -- Progress indicators
+              meter = 'value="" min="0" max="100" low="" high="" optimum=""',
+              progress = 'value="" max="100" class=""',
+
+              -- Lists with classes
+              ul = 'class="" id="" role="list"',
+              ol = 'class="" id="" start="" type="" role="list"',
+              li = 'class="" role="listitem"',
+              dl = 'class="" id="" role="definition"',
+              dt = 'class=""',
+              dd = 'class=""',
+              menu = 'type="" label="" class=""',
+
+              -- Text elements with semantic attributes
+              p = 'class="" id="" lang=""',
+              h1 = 'class="" id="" role="heading" aria-level="1"',
+              h2 = 'class="" id="" role="heading" aria-level="2"',
+              h3 = 'class="" id="" role="heading" aria-level="3"',
+              h4 = 'class="" id="" role="heading" aria-level="4"',
+              h5 = 'class="" id="" role="heading" aria-level="5"',
+              h6 = 'class="" id="" role="heading" aria-level="6"',
+              blockquote = 'cite="" class="" id=""',
+              cite = 'class=""',
+              code = 'class="" id=""',
+              pre = 'class="" id=""',
+              abbr = 'title="" class=""',
+              address = 'class="" id=""',
+              b = 'class=""',
+              strong = 'class=""',
+              i = 'class=""',
+              em = 'class=""',
+              mark = 'class=""',
+              small = 'class=""',
+              del = 'datetime="" cite="" class=""',
+              ins = 'datetime="" cite="" class=""',
+              sub = 'class=""',
+              sup = 'class=""',
+              q = 'cite="" class=""',
+              dfn = 'class="" title=""',
+              kbd = 'class=""',
+              samp = 'class=""',
+              var = 'class=""',
+              time = 'datetime="" class=""',
+              bdi = 'class="" dir=""',
+              bdo = 'dir="" class=""',
+              ruby = 'class=""',
+              rt = 'class=""',
+              rp = 'class=""',
+              wbr = '',
+
+              -- Data elements
+              data = 'value="" class=""',
 
               -- Default for any unspecified tag
-              __default = 'class="" id=""',
+              __default = 'class="" id="" data-""',
             }
 
             -- Function to get tag name from abbreviation (handles complex patterns)
@@ -358,18 +329,6 @@ return {
       for _, ft in ipairs(ft_list) do
         ls.add_snippets(ft, lorem_snippets)
       end
-    end,
-  },
-  -- Ensure Mason installs emmet-language-server
-  {
-    "mason-org/mason.nvim",
-    opts = function(_, opts)
-      opts.ensure_installed = opts.ensure_installed or {}
-      vim.list_extend(opts.ensure_installed, {
-        "emmet-language-server",
-        "html-lsp",
-      })
-      return opts
     end,
   },
 }

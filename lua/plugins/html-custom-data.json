@@ -1,0 +1,332 @@
+{
+  "version": 1.1,
+  "tags": [],
+  "globalAttributes": [
+    {
+      "name": "minlength",
+      "description": "Defines the minimum number of characters allowed in the element",
+      "references": [
+        {
+          "name": "MDN Reference",
+          "url": "https://developer.mozilla.org/docs/Web/HTML/Attributes/minlength"
+        }
+      ]
+    },
+    {
+      "name": "maxlength",
+      "description": "Defines the maximum number of characters allowed in the element",
+      "references": [
+        {
+          "name": "MDN Reference",
+          "url": "https://developer.mozilla.org/docs/Web/HTML/Attributes/maxlength"
+        }
+      ]
+    },
+    {
+      "name": "pattern",
+      "description": "Defines a regular expression that the element's value is checked against",
+      "references": [
+        {
+          "name": "MDN Reference",
+          "url": "https://developer.mozilla.org/docs/Web/HTML/Attributes/pattern"
+        }
+      ]
+    },
+    {
+      "name": "required",
+      "description": "Indicates that the element must be filled out before submitting the form",
+      "valueSet": "b",
+      "references": [
+        {
+          "name": "MDN Reference",
+          "url": "https://developer.mozilla.org/docs/Web/HTML/Attributes/required"
+        }
+      ]
+    },
+    {
+      "name": "autocomplete",
+      "description": "Indicates whether input fields should have autocomplete enabled",
+      "values": [
+        {"name": "off"},
+        {"name": "on"},
+        {"name": "name"},
+        {"name": "email"},
+        {"name": "username"},
+        {"name": "new-password"},
+        {"name": "current-password"},
+        {"name": "one-time-code"},
+        {"name": "organization"},
+        {"name": "street-address"},
+        {"name": "country"},
+        {"name": "postal-code"},
+        {"name": "tel"},
+        {"name": "url"},
+        {"name": "photo"},
+        {"name": "bday"},
+        {"name": "sex"},
+        {"name": "given-name"},
+        {"name": "family-name"},
+        {"name": "additional-name"},
+        {"name": "nickname"}
+      ]
+    },
+    {
+      "name": "loading",
+      "description": "Indicates how the browser should load the resource",
+      "values": [
+        {"name": "eager"},
+        {"name": "lazy"}
+      ]
+    },
+    {
+      "name": "decoding",
+      "description": "Provides an image decoding hint to the browser",
+      "values": [
+        {"name": "sync"},
+        {"name": "async"},
+        {"name": "auto"}
+      ]
+    },
+    {
+      "name": "fetchpriority",
+      "description": "Provides a hint of the relative priority to use when fetching the resource",
+      "values": [
+        {"name": "high"},
+        {"name": "low"},
+        {"name": "auto"}
+      ]
+    },
+    {
+      "name": "crossorigin",
+      "description": "Indicates whether CORS must be used when fetching the resource",
+      "values": [
+        {"name": "anonymous"},
+        {"name": "use-credentials"}
+      ]
+    },
+    {
+      "name": "referrerpolicy",
+      "description": "Indicates which referrer to send when fetching the resource",
+      "values": [
+        {"name": "no-referrer"},
+        {"name": "no-referrer-when-downgrade"},
+        {"name": "origin"},
+        {"name": "origin-when-cross-origin"},
+        {"name": "same-origin"},
+        {"name": "strict-origin"},
+        {"name": "strict-origin-when-cross-origin"},
+        {"name": "unsafe-url"}
+      ]
+    },
+    {
+      "name": "integrity",
+      "description": "Allows the browser to verify the fetched resource to ensure it hasn't been manipulated"
+    },
+    {
+      "name": "nonce",
+      "description": "A cryptographic nonce used by Content Security Policy"
+    },
+    {
+      "name": "inputmode",
+      "description": "Provides a hint to browsers about the type of virtual keyboard to display",
+      "values": [
+        {"name": "none"},
+        {"name": "text"},
+        {"name": "decimal"},
+        {"name": "numeric"},
+        {"name": "tel"},
+        {"name": "search"},
+        {"name": "email"},
+        {"name": "url"}
+      ]
+    },
+    {
+      "name": "enterkeyhint",
+      "description": "Defines what action label to present for the enter key on virtual keyboards",
+      "values": [
+        {"name": "enter"},
+        {"name": "done"},
+        {"name": "go"},
+        {"name": "next"},
+        {"name": "previous"},
+        {"name": "search"},
+        {"name": "send"}
+      ]
+    },
+    {
+      "name": "spellcheck",
+      "description": "Indicates whether spell checking is allowed for the element",
+      "valueSet": "b"
+    },
+    {
+      "name": "translate",
+      "description": "Specifies whether an element's text content should be translated",
+      "values": [
+        {"name": "yes"},
+        {"name": "no"}
+      ]
+    },
+    {
+      "name": "role",
+      "description": "ARIA role for accessibility",
+      "values": [
+        {"name": "alert"},
+        {"name": "alertdialog"},
+        {"name": "application"},
+        {"name": "article"},
+        {"name": "banner"},
+        {"name": "button"},
+        {"name": "cell"},
+        {"name": "checkbox"},
+        {"name": "columnheader"},
+        {"name": "combobox"},
+        {"name": "complementary"},
+        {"name": "contentinfo"},
+        {"name": "definition"},
+        {"name": "dialog"},
+        {"name": "directory"},
+        {"name": "document"},
+        {"name": "feed"},
+        {"name": "figure"},
+        {"name": "form"},
+        {"name": "grid"},
+        {"name": "gridcell"},
+        {"name": "group"},
+        {"name": "heading"},
+        {"name": "img"},
+        {"name": "link"},
+        {"name": "list"},
+        {"name": "listbox"},
+        {"name": "listitem"},
+        {"name": "log"},
+        {"name": "main"},
+        {"name": "marquee"},
+        {"name": "math"},
+        {"name": "menu"},
+        {"name": "menubar"},
+        {"name": "menuitem"},
+        {"name": "menuitemcheckbox"},
+        {"name": "menuitemradio"},
+        {"name": "navigation"},
+        {"name": "none"},
+        {"name": "note"},
+        {"name": "option"},
+        {"name": "presentation"},
+        {"name": "progressbar"},
+        {"name": "radio"},
+        {"name": "radiogroup"},
+        {"name": "region"},
+        {"name": "row"},
+        {"name": "rowgroup"},
+        {"name": "rowheader"},
+        {"name": "scrollbar"},
+        {"name": "search"},
+        {"name": "searchbox"},
+        {"name": "separator"},
+        {"name": "slider"},
+        {"name": "spinbutton"},
+        {"name": "status"},
+        {"name": "switch"},
+        {"name": "tab"},
+        {"name": "table"},
+        {"name": "tablist"},
+        {"name": "tabpanel"},
+        {"name": "term"},
+        {"name": "textbox"},
+        {"name": "timer"},
+        {"name": "toolbar"},
+        {"name": "tooltip"},
+        {"name": "tree"},
+        {"name": "treegrid"},
+        {"name": "treeitem"}
+      ]
+    },
+    {
+      "name": "aria-label",
+      "description": "Defines a string value that labels the current element"
+    },
+    {
+      "name": "aria-labelledby",
+      "description": "Identifies the element (or elements) that labels the current element"
+    },
+    {
+      "name": "aria-describedby",
+      "description": "Identifies the element (or elements) that describes the current element"
+    },
+    {
+      "name": "aria-hidden",
+      "description": "Indicates that the element and its descendants will not be visible or perceivable to users",
+      "valueSet": "b"
+    },
+    {
+      "name": "aria-live",
+      "description": "Indicates that an element will be updated, and describes the types of updates",
+      "values": [
+        {"name": "off"},
+        {"name": "polite"},
+        {"name": "assertive"}
+      ]
+    },
+    {
+      "name": "aria-expanded",
+      "description": "Indicates if the element is expanded or collapsed",
+      "valueSet": "b"
+    },
+    {
+      "name": "aria-current",
+      "description": "Indicates the element that represents the current item within a container or set of related elements",
+      "values": [
+        {"name": "page"},
+        {"name": "step"},
+        {"name": "location"},
+        {"name": "date"},
+        {"name": "time"},
+        {"name": "true"},
+        {"name": "false"}
+      ]
+    },
+    {
+      "name": "part",
+      "description": "The part attribute for CSS Shadow Parts"
+    },
+    {
+      "name": "slot",
+      "description": "Assigns a slot in a shadow DOM tree to an element"
+    },
+    {
+      "name": "is",
+      "description": "Specifies that a standard HTML element should behave like a custom built-in element"
+    },
+    {
+      "name": "itemscope",
+      "description": "Creates a new item for structured data",
+      "valueSet": "b"
+    },
+    {
+      "name": "itemtype",
+      "description": "Specifies the URL of the vocabulary for structured data"
+    },
+    {
+      "name": "itemprop",
+      "description": "Adds a property to a structured data item"
+    },
+    {
+      "name": "itemid",
+      "description": "The unique identifier of the item for structured data"
+    },
+    {
+      "name": "itemref",
+      "description": "References other elements to include in structured data"
+    }
+  ],
+  "valueSets": [
+    {
+      "name": "b",
+      "values": [
+        {"name": ""},
+        {"name": "true"},
+        {"name": "false"}
+      ]
+    }
+  ]
+}
