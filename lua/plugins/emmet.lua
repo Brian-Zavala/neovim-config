@@ -29,7 +29,7 @@ return {
       },
     },
   },
-  -- Configure emmet-language-server
+  -- Configure emmet-language-server with basic settings
   {
     "neovim/nvim-lspconfig",
     opts = function(_, opts)
@@ -66,7 +66,7 @@ return {
       return opts
     end,
   },
-  -- Add a direct Emmet expansion keybinding that works for ALL abbreviations
+  -- Custom Emmet expansion with boilerplate attributes for ALL HTML tags
   {
     "neovim/nvim-lspconfig",
     config = function()
@@ -74,7 +74,8 @@ return {
       vim.api.nvim_create_autocmd("FileType", {
         pattern = { "html", "css", "javascriptreact", "typescriptreact", "vue", "svelte" },
         callback = function(ev)
-          vim.keymap.set("i", "<C-e>", function()
+          -- Function to handle Emmet expansion
+          local function emmet_expand()
             -- Get the current line and cursor position
             local line = vim.api.nvim_get_current_line()
             local row, col = unpack(vim.api.nvim_win_get_cursor(0))
@@ -99,6 +100,107 @@ return {
 
             -- Delete the abbreviation text
             vim.api.nvim_buf_set_text(0, row - 1, start_col, row - 1, col, {""})
+
+            -- Define boilerplate attributes for ALL HTML tags
+            local tag_attributes = {
+              -- Form elements
+              form = 'action="" method="POST"',
+              input = 'type="text" name="" id="" value=""',
+              button = 'type="button" name="" id=""',
+              select = 'name="" id=""',
+              option = 'value=""',
+              textarea = 'name="" id="" rows="10" cols="30"',
+              label = 'for=""',
+              fieldset = 'name=""',
+              legend = '',
+              datalist = 'id=""',
+              output = 'name="" for=""',
+
+              -- Media elements
+              img = 'src="" alt="" width="" height=""',
+              video = 'src="" controls width="" height=""',
+              audio = 'src="" controls',
+              source = 'src="" type=""',
+              track = 'src="" kind="" srclang="" label=""',
+              picture = '',
+
+              -- Links and meta
+              a = 'href="" title=""',
+              link = 'rel="stylesheet" href=""',
+              meta = 'name="" content=""',
+              base = 'href=""',
+
+              -- Embedding
+              iframe = 'src="" width="" height="" frameborder="0"',
+              embed = 'src="" type="" width="" height=""',
+              object = 'data="" type="" width="" height=""',
+              param = 'name="" value=""',
+
+              -- Tables
+              table = 'border="0" cellpadding="0" cellspacing="0"',
+              th = 'scope="col"',
+              td = 'valign="top"',
+              caption = '',
+
+              -- Structure
+              div = 'class="" id=""',
+              span = 'class=""',
+              section = 'class="" id=""',
+              article = 'class="" id=""',
+              aside = 'class=""',
+              header = 'class=""',
+              footer = 'class=""',
+              main = 'class=""',
+              nav = 'class=""',
+
+              -- Interactive
+              details = 'open',
+              dialog = 'open',
+              canvas = 'width="" height="" id=""',
+
+              -- Others
+              script = 'src="" type="text/javascript"',
+              style = 'type="text/css"',
+              area = 'shape="" coords="" href="" alt=""',
+              map = 'name=""',
+              meter = 'value="" min="" max=""',
+              progress = 'value="" max=""',
+
+              -- Lists
+              ul = 'class=""',
+              ol = 'class=""',
+              li = '',
+              dl = 'class=""',
+              dt = '',
+              dd = '',
+
+              -- Text
+              p = 'class=""',
+              h1 = 'class="" id=""',
+              h2 = 'class="" id=""',
+              h3 = 'class="" id=""',
+              h4 = 'class="" id=""',
+              h5 = 'class="" id=""',
+              h6 = 'class="" id=""',
+              blockquote = 'cite=""',
+              cite = '',
+              code = 'class=""',
+              pre = 'class=""',
+
+              -- Default for any unspecified tag
+              __default = 'class="" id=""',
+            }
+
+            -- Function to get tag name from abbreviation (handles complex patterns)
+            local function get_base_tag(abbr_str)
+              -- Remove ID, class, and attribute selectors
+              local base = abbr_str:gsub("#[%w%-_]+", ""):gsub("%.[%w%-_]+", ""):gsub("%[.-%]", "")
+              -- Remove multiplication and child operators
+              base = base:gsub("%*%d+", ""):gsub(">.*", ""):gsub("%+.*", "")
+              -- Get just the tag name
+              base = base:match("^(%w+)")
+              return base
+            end
 
             -- Manually expand common patterns that emmet-language-server might miss
             local expanded = nil
@@ -138,15 +240,52 @@ return {
               expanded = table.concat(lists, "\n")
             end
 
-            -- Handle div*N and other tag*N patterns
+            -- Handle tag*N patterns with boilerplate attributes
             local tag, tag_count = abbr:match("^(%w+)%*(%d+)$")
             if tag and tag_count and not expanded then
               local count = tonumber(tag_count)
               local tags = {}
+              local attrs = tag_attributes[tag] and (" " .. tag_attributes[tag]) or ""
               for i = 1, count do
-                table.insert(tags, string.format("<%s></%s>", tag, tag))
+                -- Check if it's a self-closing tag
+                if tag == "input" or tag == "img" or tag == "link" or tag == "meta" or tag == "br" or
+                   tag == "hr" or tag == "area" or tag == "base" or tag == "col" or tag == "embed" or
+                   tag == "source" or tag == "track" or tag == "wbr" or tag == "param" then
+                  table.insert(tags, string.format("<%s%s />", tag, attrs))
+                else
+                  table.insert(tags, string.format("<%s%s></%s>", tag, attrs, tag))
+                end
               end
               expanded = table.concat(tags, "\n")
+            end
+
+            -- Handle single tags with boilerplate attributes (no multiplication)
+            if not expanded then
+              local base_tag = get_base_tag(abbr)
+              if base_tag then
+                -- Get attributes for this tag, or use default if not specified
+                local attrs = tag_attributes[base_tag]
+                if attrs == nil and base_tag:match("^%w+$") then
+                  -- Use default attributes for unspecified HTML tags
+                  attrs = tag_attributes.__default or ""
+                end
+
+                if attrs and attrs ~= "" then
+                  attrs = " " .. attrs
+                else
+                  attrs = ""
+                end
+
+                -- Check if it's a self-closing tag
+                if base_tag == "input" or base_tag == "img" or base_tag == "link" or base_tag == "meta" or
+                   base_tag == "br" or base_tag == "hr" or base_tag == "area" or base_tag == "base" or
+                   base_tag == "col" or base_tag == "embed" or base_tag == "source" or base_tag == "track" or
+                   base_tag == "wbr" or base_tag == "param" then
+                  expanded = string.format("<%s%s />", base_tag, attrs)
+                else
+                  expanded = string.format("<%s%s></%s>", base_tag, attrs, base_tag)
+                end
+              end
             end
 
             if expanded then
@@ -161,7 +300,52 @@ return {
               end
             else
               -- Fallback to LSP expansion for complex patterns
-              -- Restore the abbreviation first
+              -- But first, check if we can handle it with our custom expansion
+              local simple_tag = abbr:match("^(%w+)$")
+              if simple_tag then
+                -- It's just a simple tag name, expand it with attributes
+                local attrs = tag_attributes[simple_tag]
+                if attrs == nil then
+                  -- Use default attributes for unspecified HTML tags
+                  attrs = tag_attributes.__default or ""
+                end
+
+                if attrs and attrs ~= "" then
+                  attrs = " " .. attrs
+                else
+                  attrs = ""
+                end
+
+                -- Check if it's a self-closing tag
+                if simple_tag == "input" or simple_tag == "img" or simple_tag == "link" or simple_tag == "meta" or
+                   simple_tag == "br" or simple_tag == "hr" or simple_tag == "area" or simple_tag == "base" or
+                   simple_tag == "col" or simple_tag == "embed" or simple_tag == "source" or simple_tag == "track" or
+                   simple_tag == "wbr" or simple_tag == "param" then
+                  expanded = string.format("<%s%s />", simple_tag, attrs)
+                else
+                  expanded = string.format("<%s%s></%s>", simple_tag, attrs, simple_tag)
+                end
+
+                if expanded then
+                  -- Insert the expanded text
+                  local lines = vim.split(expanded, "\n")
+                  vim.api.nvim_put(lines, "c", false, true)
+
+                  -- Move cursor to first empty attribute or inside tag
+                  local first_empty = expanded:find('=""')
+                  if first_empty then
+                    vim.api.nvim_win_set_cursor(0, {row, start_col + first_empty})
+                  else
+                    local first_close = expanded:find("><")
+                    if first_close then
+                      vim.api.nvim_win_set_cursor(0, {row, start_col + first_close})
+                    end
+                  end
+                  return
+                end
+              end
+
+              -- Complex pattern - restore abbreviation and use LSP
               vim.api.nvim_buf_set_text(0, row - 1, start_col, row - 1, start_col, {abbr})
 
               -- Try to trigger completion
@@ -175,9 +359,18 @@ return {
                 end, 100)
               end, 10)
             end
-          end, {
+          end
+
+          -- Map both Ctrl+E and Tab to Emmet expansion
+          vim.keymap.set("i", "<C-e>", emmet_expand, {
             buffer = ev.buf,
             desc = "Expand Emmet abbreviation",
+            silent = true
+          })
+
+          vim.keymap.set("i", "<Tab>", emmet_expand, {
+            buffer = ev.buf,
+            desc = "Expand Emmet abbreviation with Tab",
             silent = true
           })
         end,

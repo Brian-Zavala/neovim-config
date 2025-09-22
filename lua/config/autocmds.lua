@@ -82,3 +82,29 @@ vim.api.nvim_create_autocmd({ "BufLeave", "FocusLost" }, {
     vim.cmd("silent! wall")
   end,
 })
+
+-- Auto-format on save, buffer leave, and focus lost
+vim.api.nvim_create_autocmd({ "BufWritePost", "BufLeave", "FocusLost" }, {
+  pattern = "*",
+  callback = function(args)
+    -- Check if conform is available
+    local ok, conform = pcall(require, "conform")
+    if not ok then
+      return
+    end
+
+    -- Only format if the buffer is a normal file buffer
+    local buftype = vim.bo[args.buf].buftype
+    if buftype ~= "" and buftype ~= "acwrite" then
+      return
+    end
+
+    -- Format the buffer
+    conform.format({
+      bufnr = args.buf,
+      async = true,
+      lsp_fallback = true,
+      quiet = true,
+    })
+  end,
+})
