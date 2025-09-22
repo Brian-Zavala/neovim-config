@@ -70,7 +70,7 @@ return {
   {
     "neovim/nvim-lspconfig",
     config = function()
-      -- Create a universal Ctrl+E keybinding for Emmet expansion
+      -- Create a universal Tab keybinding for Emmet expansion
       vim.api.nvim_create_autocmd("FileType", {
         pattern = { "html", "css", "javascriptreact", "typescriptreact", "vue", "svelte" },
         callback = function(ev)
@@ -97,6 +97,9 @@ return {
               -- No abbreviation found, fallback to default behavior
               return vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<C-e>", true, false, true), "n", false)
             end
+
+            -- Debug: Show what abbreviation we captured
+            -- vim.notify("Emmet abbr: " .. abbr, vim.log.levels.INFO)
 
             -- Delete the abbreviation text
             vim.api.nvim_buf_set_text(0, row - 1, start_col, row - 1, col, {""})
@@ -202,115 +205,20 @@ return {
               return base
             end
 
-            -- Manually expand common patterns that emmet-language-server might miss
+            -- Manually expand patterns with our custom attributes
             local expanded = nil
 
-            -- Handle list patterns specifically
-            local list_pattern = "^([uo]l)>li%*(%d+)$"
-            local list_match = abbr:match(list_pattern)
-            if list_match then
-              local tag_type = abbr:match("^([uo]l)")
-              local count = tonumber(abbr:match("%*(%d+)$"))
-              local items = {}
-              for i = 1, count do
-                table.insert(items, "  <li></li>")
+            -- PRIORITY 1: Handle simple single tags (like "form", "input", "div")
+            local simple_tag = abbr:match("^(%w+)$")
+            if simple_tag then
+              local attrs = tag_attributes[simple_tag]
+              -- If no specific attributes, use default for common HTML elements
+              if attrs == nil and simple_tag:match("^[a-z]+$") then
+                attrs = tag_attributes.__default or ""
               end
-              expanded = string.format("<%s>\n%s\n</%s>", tag_type, table.concat(items, "\n"), tag_type)
-            end
 
-            -- Handle simple li*N pattern
-            local li_count = abbr:match("^li%*(%d+)$")
-            if li_count then
-              local count = tonumber(li_count)
-              local items = {}
-              for i = 1, count do
-                table.insert(items, "<li></li>")
-              end
-              expanded = table.concat(items, "\n")
-            end
-
-            -- Handle ul*N or ol*N pattern
-            local list_type, list_num = abbr:match("^([uo]l)%*(%d+)$")
-            if list_type and list_num then
-              local count = tonumber(list_num)
-              local lists = {}
-              for i = 1, count do
-                table.insert(lists, string.format("<%s></%s>", list_type, list_type))
-              end
-              expanded = table.concat(lists, "\n")
-            end
-
-            -- Handle tag*N patterns with boilerplate attributes
-            local tag, tag_count = abbr:match("^(%w+)%*(%d+)$")
-            if tag and tag_count and not expanded then
-              local count = tonumber(tag_count)
-              local tags = {}
-              local attrs = tag_attributes[tag] and (" " .. tag_attributes[tag]) or ""
-              for i = 1, count do
-                -- Check if it's a self-closing tag
-                if tag == "input" or tag == "img" or tag == "link" or tag == "meta" or tag == "br" or
-                   tag == "hr" or tag == "area" or tag == "base" or tag == "col" or tag == "embed" or
-                   tag == "source" or tag == "track" or tag == "wbr" or tag == "param" then
-                  table.insert(tags, string.format("<%s%s />", tag, attrs))
-                else
-                  table.insert(tags, string.format("<%s%s></%s>", tag, attrs, tag))
-                end
-              end
-              expanded = table.concat(tags, "\n")
-            end
-
-            -- Handle single tags with boilerplate attributes (no multiplication)
-            if not expanded then
-              local base_tag = get_base_tag(abbr)
-              if base_tag then
-                -- Get attributes for this tag, or use default if not specified
-                local attrs = tag_attributes[base_tag]
-                if attrs == nil and base_tag:match("^%w+$") then
-                  -- Use default attributes for unspecified HTML tags
-                  attrs = tag_attributes.__default or ""
-                end
-
-                if attrs and attrs ~= "" then
-                  attrs = " " .. attrs
-                else
-                  attrs = ""
-                end
-
-                -- Check if it's a self-closing tag
-                if base_tag == "input" or base_tag == "img" or base_tag == "link" or base_tag == "meta" or
-                   base_tag == "br" or base_tag == "hr" or base_tag == "area" or base_tag == "base" or
-                   base_tag == "col" or base_tag == "embed" or base_tag == "source" or base_tag == "track" or
-                   base_tag == "wbr" or base_tag == "param" then
-                  expanded = string.format("<%s%s />", base_tag, attrs)
-                else
-                  expanded = string.format("<%s%s></%s>", base_tag, attrs, base_tag)
-                end
-              end
-            end
-
-            if expanded then
-              -- Insert the expanded text
-              local lines = vim.split(expanded, "\n")
-              vim.api.nvim_put(lines, "c", false, true)
-
-              -- Move cursor to first tag content
-              local first_close = expanded:find("><")
-              if first_close then
-                vim.api.nvim_win_set_cursor(0, {row, start_col + first_close})
-              end
-            else
-              -- Fallback to LSP expansion for complex patterns
-              -- But first, check if we can handle it with our custom expansion
-              local simple_tag = abbr:match("^(%w+)$")
-              if simple_tag then
-                -- It's just a simple tag name, expand it with attributes
-                local attrs = tag_attributes[simple_tag]
-                if attrs == nil then
-                  -- Use default attributes for unspecified HTML tags
-                  attrs = tag_attributes.__default or ""
-                end
-
-                if attrs and attrs ~= "" then
+              if attrs ~= nil then
+                if attrs ~= "" then
                   attrs = " " .. attrs
                 else
                   attrs = ""
@@ -325,26 +233,90 @@ return {
                 else
                   expanded = string.format("<%s%s></%s>", simple_tag, attrs, simple_tag)
                 end
+              end
+            end
 
-                if expanded then
-                  -- Insert the expanded text
-                  local lines = vim.split(expanded, "\n")
-                  vim.api.nvim_put(lines, "c", false, true)
+            -- PRIORITY 2: Handle list patterns specifically
+            if not expanded then
+              local list_pattern = "^([uo]l)>li%*(%d+)$"
+              local list_match = abbr:match(list_pattern)
+              if list_match then
+                local tag_type = abbr:match("^([uo]l)")
+                local count = tonumber(abbr:match("%*(%d+)$"))
+                local items = {}
+                for i = 1, count do
+                  table.insert(items, "  <li></li>")
+                end
+                expanded = string.format("<%s>\n%s\n</%s>", tag_type, table.concat(items, "\n"), tag_type)
+              end
+            end
 
-                  -- Move cursor to first empty attribute or inside tag
-                  local first_empty = expanded:find('=""')
-                  if first_empty then
-                    vim.api.nvim_win_set_cursor(0, {row, start_col + first_empty})
+            -- PRIORITY 3: Handle simple li*N pattern
+            if not expanded then
+              local li_count = abbr:match("^li%*(%d+)$")
+              if li_count then
+                local count = tonumber(li_count)
+                local items = {}
+                for i = 1, count do
+                  table.insert(items, "<li></li>")
+                end
+                expanded = table.concat(items, "\n")
+              end
+            end
+
+            -- PRIORITY 4: Handle tag*N patterns with boilerplate attributes
+            if not expanded then
+              local tag, tag_count = abbr:match("^(%w+)%*(%d+)$")
+              if tag and tag_count then
+                local count = tonumber(tag_count)
+                local tags = {}
+                local attrs = tag_attributes[tag] and (" " .. tag_attributes[tag]) or ""
+                for i = 1, count do
+                  -- Check if it's a self-closing tag
+                  if tag == "input" or tag == "img" or tag == "link" or tag == "meta" or tag == "br" or
+                     tag == "hr" or tag == "area" or tag == "base" or tag == "col" or tag == "embed" or
+                     tag == "source" or tag == "track" or tag == "wbr" or tag == "param" then
+                    table.insert(tags, string.format("<%s%s />", tag, attrs))
                   else
-                    local first_close = expanded:find("><")
-                    if first_close then
-                      vim.api.nvim_win_set_cursor(0, {row, start_col + first_close})
-                    end
+                    table.insert(tags, string.format("<%s%s></%s>", tag, attrs, tag))
                   end
-                  return
+                end
+                expanded = table.concat(tags, "\n")
+              end
+            end
+
+            -- PRIORITY 5: Handle complex single tags with operators (div.class, form#id, etc.)
+            if not expanded then
+              local base_tag = get_base_tag(abbr)
+              if base_tag and abbr ~= base_tag then  -- Only if it has operators
+                -- Get attributes for this tag
+                local attrs = tag_attributes[base_tag]
+                if attrs == nil and base_tag:match("^%w+$") then
+                  attrs = tag_attributes.__default or ""
+                end
+
+                -- For complex patterns, let LSP handle it
+                expanded = nil
+              end
+            end
+
+            if expanded then
+              -- Insert the expanded text
+              local lines = vim.split(expanded, "\n")
+              vim.api.nvim_put(lines, "c", false, true)
+
+              -- Move cursor to first empty attribute or inside tag
+              local first_empty = expanded:find('=""')
+              if first_empty then
+                vim.api.nvim_win_set_cursor(0, {row, start_col + first_empty})
+              else
+                local first_close = expanded:find("><")
+                if first_close then
+                  vim.api.nvim_win_set_cursor(0, {row, start_col + first_close})
                 end
               end
-
+            else
+              -- Fallback to LSP expansion for truly complex patterns
               -- Complex pattern - restore abbreviation and use LSP
               vim.api.nvim_buf_set_text(0, row - 1, start_col, row - 1, start_col, {abbr})
 
@@ -361,13 +333,7 @@ return {
             end
           end
 
-          -- Map both Ctrl+E and Tab to Emmet expansion
-          vim.keymap.set("i", "<C-e>", emmet_expand, {
-            buffer = ev.buf,
-            desc = "Expand Emmet abbreviation",
-            silent = true
-          })
-
+          -- Map Tab to Emmet expansion
           vim.keymap.set("i", "<Tab>", emmet_expand, {
             buffer = ev.buf,
             desc = "Expand Emmet abbreviation with Tab",
