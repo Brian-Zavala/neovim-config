@@ -15,7 +15,14 @@ return {
         },
       },
       keymap = {
-        preset = "super-tab",
+        preset = "default",
+        -- Override Tab to always fallback (let our Emmet handle it)
+        ["<Tab>"] = { "fallback" },
+        ["<S-Tab>"] = { "fallback" },
+        -- Use Ctrl+N/P for navigation
+        ["<C-n>"] = { "select_next", "fallback" },
+        ["<C-p>"] = { "select_prev", "fallback" },
+        ["<CR>"] = { "accept", "fallback" },
       },
       completion = {
         accept = {
@@ -98,8 +105,8 @@ return {
               return vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<C-e>", true, false, true), "n", false)
             end
 
-            -- Debug: Show what abbreviation we captured
-            -- vim.notify("Emmet abbr: " .. abbr, vim.log.levels.INFO)
+            -- Debug: Uncomment to see what abbreviation we captured
+            -- vim.notify("Emmet abbr: '" .. abbr .. "'", vim.log.levels.INFO)
 
             -- Delete the abbreviation text
             vim.api.nvim_buf_set_text(0, row - 1, start_col, row - 1, col, {""})
@@ -285,20 +292,6 @@ return {
               end
             end
 
-            -- PRIORITY 5: Handle complex single tags with operators (div.class, form#id, etc.)
-            if not expanded then
-              local base_tag = get_base_tag(abbr)
-              if base_tag and abbr ~= base_tag then  -- Only if it has operators
-                -- Get attributes for this tag
-                local attrs = tag_attributes[base_tag]
-                if attrs == nil and base_tag:match("^%w+$") then
-                  attrs = tag_attributes.__default or ""
-                end
-
-                -- For complex patterns, let LSP handle it
-                expanded = nil
-              end
-            end
 
             if expanded then
               -- Insert the expanded text
