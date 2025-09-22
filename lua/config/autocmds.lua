@@ -111,18 +111,19 @@ vim.api.nvim_create_autocmd({ "BufWritePost", "BufLeave", "FocusLost" }, {
 
 -- Auto LazySync when Neovim config files are changed
 vim.api.nvim_create_autocmd("BufWritePost", {
-  pattern = { "*.lua", "*.vim" },
   callback = function(args)
-    local file = vim.fn.expand("%:p")
-    -- Check if the file is in the Neovim config directory
-    if file:match("%.config/nvim/") then
-      -- Check if it's a plugin configuration file
-      if file:match("/plugins/") or file:match("lazy%-lock%.json") then
+    local file = args.file
+    local config_dir = vim.fn.stdpath("config")
+
+    -- Check if file is in the Neovim config directory
+    if file:find(config_dir, 1, true) then
+      -- Check if it's a plugin file or lazy-lock.json
+      if file:match("/plugins/.*%.lua$") or file:match("lazy%-lock%.json$") then
         -- Run LazySync asynchronously
         vim.defer_fn(function()
-          vim.notify("Config changed, syncing plugins...", vim.log.levels.INFO)
+          vim.notify("Plugin config changed, syncing...", vim.log.levels.INFO)
           vim.cmd("LazySync")
-        end, 100)
+        end, 500)
       end
     end
   end,
