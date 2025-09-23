@@ -50,9 +50,6 @@ return {
 
       -- Make completions auto-trigger on emmet patterns
       opts.completion = vim.tbl_deep_extend("force", opts.completion or {}, {
-        keyword = {
-          length = 1,
-        },
         trigger = {
           show_on_keyword = true,
           show_on_trigger_character = true,
