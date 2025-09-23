@@ -34,9 +34,6 @@ return {
             },
           },
         },
-        -- Disable emmet_language_server (we use VSCode's built-in)
-        emmet_language_server = false,
-        emmet_ls = false,
       },
     },
   },
