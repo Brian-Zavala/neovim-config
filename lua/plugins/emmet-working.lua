@@ -24,19 +24,9 @@ return {
         preset = "default",
         ["<Tab>"] = {
           function(cmp)
-            -- If completion menu is visible, accept first emmet suggestion
+            -- If completion menu is visible, accept it
             if cmp.is_visible() then
-              -- Get current completions
-              local items = cmp.get_completions()
-              if items and #items > 0 then
-                -- Check if first item is from emmet
-                local first_item = items[1]
-                if first_item and first_item.source_name == "LSP" then
-                  -- Accept the first completion
-                  return cmp.accept({ index = 1 })
-                end
-              end
-              return cmp.select_next()
+              return cmp.accept()
             else
               -- Trigger completion
               return cmp.show()
