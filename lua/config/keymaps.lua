@@ -31,3 +31,34 @@ map("t", "jj", "<C-\\><C-n>", { desc = "Exit terminal mode with jj" })
 -- We use pcall to avoid errors if the mapping doesn't exist
 pcall(vim.keymap.del, "t", "<Esc>")
 
+-- Wrapper: Comment even blank lines with gcc, with auto-indentation
+map("n", "gcc", function()
+  local line = vim.api.nvim_get_current_line()
+
+  if line:match("^%s*$") then
+    -- Get the filetype's commentstring
+    local cs = vim.bo.commentstring
+    if cs and cs ~= "" then
+      -- Strip the "%s" placeholder, keep only leader
+      local leader = cs:gsub("%%s", ""):gsub("^%s+", ""):gsub("%s+$", "")
+
+      -- If line is completely empty, use vim's auto-indent
+      if line == "" then
+        -- Insert comment leader and let vim handle indentation
+        vim.api.nvim_feedkeys("i" .. leader .. "\027", "n", false)  -- \027 is ESC
+      else
+        -- Line has whitespace, preserve it
+        local indent = line:match("^(%s*)") or ""
+        vim.api.nvim_set_current_line(indent .. leader)
+      end
+
+      -- Trigger auto-indent to fix indentation
+      vim.cmd("normal! ==")  -- Auto-indent current line
+    end
+  else
+    -- Fallback to mini.comment's gcc (feed keys to it)
+    vim.api.nvim_feedkeys("gcc", "n", false)
+  end
+end, { desc = "Comment line (works on empty lines too, with auto-indent)" })
+
+
