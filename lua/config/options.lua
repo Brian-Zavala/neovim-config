@@ -1,9 +1,9 @@
 -- Options are automatically loaded before lazy.nvim startup
 -- Default options that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/options.lua
 -- Add any additional options here
--- Enable absolute line numbers only
+-- Enable relative line numbers (shows distance from current line)
 vim.opt.number = true
-vim.opt.relativenumber = false
+vim.opt.relativenumber = true
 vim.opt.numberwidth = 3
 
 -- No more .swp files

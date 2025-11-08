@@ -70,7 +70,6 @@ _G.TermHereToggle = function()
     end,
   })
 
-
   -- Save tab-local state
   vim.t.termhere_state = { buf = buf, win = term_win }
 end
@@ -122,7 +121,7 @@ vim.api.nvim_create_autocmd("BufWritePost", {
         -- Run LazySync asynchronously
         vim.defer_fn(function()
           vim.notify("Plugin config changed, syncing...", vim.log.levels.INFO)
-          vim.cmd("LazySync")
+          vim.cmd("Lazy sync")
         end, 500)
       end
     end

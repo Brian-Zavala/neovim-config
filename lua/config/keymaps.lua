@@ -7,7 +7,7 @@ local map = vim.keymap.set
 -- Use 'jj' to escape from insert mode
 map("i", "jj", "<Esc>", { desc = "Exit insert mode with jj" })
 
--- Use 'mm' to escape from visual mode  
+-- Use 'mm' to escape from visual mode
 map("v", "mm", "<Esc>", { desc = "Exit visual mode with mm" })
 
 map("n", "<C-/>", function()
@@ -45,7 +45,7 @@ map("n", "gcc", function()
       -- If line is completely empty, use vim's auto-indent
       if line == "" then
         -- Insert comment leader and let vim handle indentation
-        vim.api.nvim_feedkeys("i" .. leader .. "\027", "n", false)  -- \027 is ESC
+        vim.api.nvim_feedkeys("i" .. leader .. "\027", "n", false) -- \027 is ESC
       else
         -- Line has whitespace, preserve it
         local indent = line:match("^(%s*)") or ""
@@ -53,7 +53,7 @@ map("n", "gcc", function()
       end
 
       -- Trigger auto-indent to fix indentation
-      vim.cmd("normal! ==")  -- Auto-indent current line
+      vim.cmd("normal! ==") -- Auto-indent current line
     end
   else
     -- Fallback to mini.comment's gcc (feed keys to it)
@@ -61,4 +61,5 @@ map("n", "gcc", function()
   end
 end, { desc = "Comment line (works on empty lines too, with auto-indent)" })
 
-
+map("n", "<leader>ls", "<cmd>LiveServerStart<CR>", { desc = "Start Live Server" })
+map("n", "<leader>le", "<cmd>LiveServerStop<CR>", { desc = "Stop Live Server" })
