@@ -4,3 +4,4 @@ return {
     explorer = { enabled = false }, -- Disable Snacks explorer to avoid conflict with Neo-tree
   },
 }
+

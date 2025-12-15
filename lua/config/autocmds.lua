@@ -75,55 +75,55 @@ _G.TermHereToggle = function()
 end
 
 -- Autosave all buffers when switching buffers or losing focus
-vim.api.nvim_create_autocmd({ "BufLeave", "FocusLost" }, {
-  pattern = "*",
-  callback = function()
-    vim.cmd("silent! wall")
-  end,
-})
+-- vim.api.nvim_create_autocmd({ "BufLeave", "FocusLost" }, {
+--   pattern = "*",
+--   callback = function()
+--     vim.cmd("silent! wall")
+--   end,
+-- })
 
 -- Auto-format on save, buffer leave, and focus lost
-vim.api.nvim_create_autocmd({ "BufWritePost", "BufLeave", "FocusLost" }, {
-  pattern = "*",
-  callback = function(args)
-    -- Check if conform is available
-    local ok, conform = pcall(require, "conform")
-    if not ok then
-      return
-    end
-
-    -- Only format if the buffer is a normal file buffer
-    local buftype = vim.bo[args.buf].buftype
-    if buftype ~= "" and buftype ~= "acwrite" then
-      return
-    end
-
-    -- Format the buffer
-    conform.format({
-      bufnr = args.buf,
-      async = true,
-      lsp_fallback = true,
-      quiet = true,
-    })
-  end,
-})
+-- vim.api.nvim_create_autocmd({ "BufWritePost", "BufLeave", "FocusLost" }, {
+--   pattern = "*",
+--   callback = function(args)
+--     -- Check if conform is available
+--     local ok, conform = pcall(require, "conform")
+--     if not ok then
+--       return
+--     end
+--
+--     -- Only format if the buffer is a normal file buffer
+--     local buftype = vim.bo[args.buf].buftype
+--     if buftype ~= "" and buftype ~= "acwrite" then
+--       return
+--     end
+--
+--     -- Format the buffer
+--     conform.format({
+--       bufnr = args.buf,
+--       async = true,
+--       lsp_fallback = true,
+--       quiet = true,
+--     })
+--   end,
+-- })
 
 -- Auto LazySync when Neovim config files are changed
-vim.api.nvim_create_autocmd("BufWritePost", {
-  callback = function(args)
-    local file = args.file
-    local config_dir = vim.fn.stdpath("config")
-
-    -- Check if file is in the Neovim config directory
-    if file:find(config_dir, 1, true) then
-      -- Check if it's a plugin file or lazy-lock.json
-      if file:match("/plugins/.*%.lua$") or file:match("lazy%-lock%.json$") then
-        -- Run LazySync asynchronously
-        vim.defer_fn(function()
-          vim.notify("Plugin config changed, syncing...", vim.log.levels.INFO)
-          vim.cmd("Lazy sync")
-        end, 500)
-      end
-    end
-  end,
-})
+-- vim.api.nvim_create_autocmd("BufWritePost", {
+--   callback = function(args)
+--     local file = args.file
+--     local config_dir = vim.fn.stdpath("config")
+--
+--     -- Check if file is in the Neovim config directory
+--     if file:find(config_dir, 1, true) then
+--       -- Check if it's a plugin file or lazy-lock.json
+--       if file:match("/plugins/.*%.lua$") or file:match("lazy%-lock%.json$") then
+--         -- Run LazySync asynchronously
+--         vim.defer_fn(function()
+--           vim.notify("Plugin config changed, syncing...", vim.log.levels.INFO)
+--           vim.cmd("Lazy sync")
+--         end, 500)
+--       end
+--     end
+--   end,
+-- })

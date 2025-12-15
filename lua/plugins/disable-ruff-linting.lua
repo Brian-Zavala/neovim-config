@@ -4,8 +4,9 @@ return {
     "neovim/nvim-lspconfig",
     opts = {
       servers = {
-        ruff_lsp = false,  -- This disables ruff completely
+        ruff_lsp = true, -- This disables ruff completely
       },
     },
   },
 }
+

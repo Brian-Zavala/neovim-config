@@ -19,3 +19,14 @@ vim.opt.splitbelow = true
 
 -- Set shell to zsh (matches system shell)
 vim.opt.shell = "/usr/bin/zsh"
+
+-- Force .jsx files to be recognized as 'javascriptreact' filetype
+vim.filetype.add({
+  extension = {
+    jsx = "javascriptreact",
+  },
+})
+
+-- Force the 'javascriptreact' filetype to use the 'tsx' parser
+-- This is the critical step that fixes the highlighting
+vim.treesitter.language.register("tsx", "javascriptreact")
