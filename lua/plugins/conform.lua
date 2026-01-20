@@ -17,6 +17,9 @@ return {
         -- Python with Ruff
         python = { "ruff_format", "ruff_organize_imports" },
 
+        -- Rust
+        rust = { "rustfmt" },
+
         -- Lua
         lua = { "stylua" },
 
