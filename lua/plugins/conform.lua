@@ -20,6 +20,22 @@ return {
         -- Rust
         rust = { "rustfmt" },
 
+        -- Go
+        go = { "gofumpt" },
+
+        -- C/C++
+        c = { "clang-format" },
+        cpp = { "clang-format" },
+
+        -- TOML
+        toml = { "taplo" },
+
+        -- YAML
+        yaml = { "prettierd" },
+
+        -- Svelte
+        svelte = { "prettierd" },
+
         -- Lua
         lua = { "stylua" },
 
