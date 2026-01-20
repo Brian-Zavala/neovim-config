@@ -1,32 +1,42 @@
 return {
-  -- 1. LSP Manager (The Brains)
-  {
-    "mason-org/mason.nvim",
-    dependencies = {
-      "mason-org/mason-lspconfig.nvim",
-      "neovim/nvim-lspconfig",
-    },
-    config = function()
-      require("mason").setup()
-      require("mason-lspconfig").setup({
-        -- "ts_ls" is the new name for tsserver (TypeScript/React server)
-        ensure_installed = { "ts_ls", "html", "cssls", "tailwindcss", "emmet_language_server" },
-      })
-    end,
-  },
-
-  -- 2. LSP Configuration
+  -- 1. LSP Configuration (Merged Mason + LSPConfig for dependency safety)
   {
     "neovim/nvim-lspconfig",
+    dependencies = {
+      "mason-org/mason.nvim",
+      "mason-org/mason-lspconfig.nvim",
+    },
     config = function()
+      -- Step 1: Setup Mason (Package Manager)
+      require("mason").setup()
+
+      -- Step 2: Setup Mason-LSPConfig (The bridge)
+      require("mason-lspconfig").setup({
+        -- "ts_ls" is the new name for tsserver (TypeScript/React server)
+        ensure_installed = { 
+          "ts_ls", 
+          "html", 
+          "cssls", 
+          "tailwindcss", 
+          "emmet_language_server",
+          "pyright",  -- Python
+          "clangd"    -- C/C++ (rust_analyzer removed - using rustup)
+        },
+      })
+
+      -- Step 3: Setup LSP Servers
       local lspconfig = require("lspconfig")
       local capabilities = require("cmp_nvim_lsp").default_capabilities()
+
+      -- Python Setup
+      lspconfig.pyright.setup({ capabilities = capabilities })
+      
+      -- C/C++ Setup
+      lspconfig.clangd.setup({ capabilities = capabilities })
 
       -- TypeScript / React Server Setup
       lspconfig.ts_ls.setup({
         capabilities = capabilities,
-        -- This specific setting enables "Go to Source Definition"
-        -- and other strict import checking like JetBrains
         init_options = {
           preferences = {
             disableSuggestions = true,
@@ -37,24 +47,14 @@ return {
       -- HTML/CSS Setup
       lspconfig.html.setup({ capabilities = capabilities })
       lspconfig.cssls.setup({ capabilities = capabilities })
-      -- If you use Tailwind, this is mandatory for class completion
       lspconfig.tailwindcss.setup({ capabilities = capabilities })
 
       -- Emmet Setup
       lspconfig.emmet_language_server.setup({
         filetypes = {
-          "css",
-          "eruby",
-          "html",
-          "javascript",
-          "javascriptreact",
-          "less",
-          "sass",
-          "scss",
-          "svelte",
-          "pug",
-          "typescriptreact",
-          "vue",
+          "css", "eruby", "html", "javascript", "javascriptreact", 
+          "less", "sass", "scss", "svelte", "pug", 
+          "typescriptreact", "vue",
         },
         capabilities = capabilities,
       })
@@ -67,7 +67,7 @@ return {
     end,
   },
 
-  -- 3. Autocomplete (The UI)
+  -- 2. Autocomplete (The UI)
   {
     "hrsh7th/nvim-cmp",
     dependencies = {
@@ -95,24 +95,18 @@ return {
           end,
         },
         mapping = {
-          -- The Super Tab Logic
           ["<Tab>"] = cmp.mapping(function(fallback)
             if cmp.visible() then
-              -- If menu is visible, select next item
               cmp.select_next_item()
             elseif luasnip.expand_or_jumpable() then
-              -- If in a snippet, jump to next input
               luasnip.expand_or_jump()
             elseif has_words_before() then
-              -- If writing a word (like 'div'), trigger the menu
               cmp.complete()
             else
-              -- Otherwise, just hit tab normally
               fallback()
             end
           end, { "i", "s" }),
 
-          -- Shift+Tab to go backwards
           ["<S-Tab>"] = cmp.mapping(function(fallback)
             if cmp.visible() then
               cmp.select_prev_item()
@@ -123,20 +117,19 @@ return {
             end
           end, { "i", "s" }),
 
-          -- Confirm selection with Enter (Standard IDE behavior)
           ["<CR>"] = cmp.mapping.confirm({ select = true }),
         },
         sources = cmp.config.sources({
-          { name = "nvim-lsp" }, -- The LSP is the #1 source
-          { name = "luasnip" }, -- Snippets
-          { name = "buffer" }, -- Text in file
-          { name = "path" }, -- File paths
+          { name = "nvim-lsp" },
+          { name = "luasnip" },
+          { name = "buffer" },
+          { name = "path" },
         }),
       })
     end,
   },
 
-  -- 4. The "JetBrains" Magic (Auto-close tags)
+  -- 3. Auto-close tags
   {
     "windwp/nvim-ts-autotag",
     config = function()

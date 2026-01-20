@@ -1,0 +1,26 @@
+return {
+  {
+    "nvim-treesitter/nvim-treesitter",
+    opts = function(_, opts)
+      -- Add Omarchy 3.0+ custom languages to LazyVim's defaults
+      vim.list_extend(opts.ensure_installed, {
+        "rust",
+        "cpp",
+        "css",
+      })
+      
+      -- Custom incremental selection keymaps
+      opts.incremental_selection = {
+        enable = true,
+        keymaps = {
+          init_selection = "<C-space>",
+          node_incremental = "<C-space>",
+          scope_incremental = false,
+          node_decremental = "<bs>",
+        },
+      }
+      
+      return opts
+    end,
+  },
+}

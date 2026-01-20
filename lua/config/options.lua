@@ -30,3 +30,9 @@ vim.filetype.add({
 -- Force the 'javascriptreact' filetype to use the 'tsx' parser
 -- This is the critical step that fixes the highlighting
 vim.treesitter.language.register("tsx", "javascriptreact")
+
+-- Ensure ~/.cargo/bin is in PATH for rust-analyzer/cargo
+local cargo_bin = vim.fn.expand("~/.cargo/bin")
+if vim.fn.isdirectory(cargo_bin) == 1 then
+  vim.env.PATH = cargo_bin .. ":" .. vim.env.PATH
+end
