@@ -27,7 +27,22 @@ return {
       set("n", "<S-F10>",  "<cmd>CMakeRun<cr>",                         "CMake: Run")
       set("n", "<S-F9>",   "<cmd>CMakeDebug<cr>",                       "CMake: Debug")
       set("n", "<C-S-F9>", "<cmd>CMakeClean<cr><cmd>CMakeBuild<cr>",    "CMake: Rebuild")
-      set("n", "<leader>cm", "<cmd>CMakeSelectBuildTarget<cr>",         "CMake: Select target")
+      -- <leader>cm is taken by LazyVim's :Mason — use <leader>cM for CMake target
+      set("n", "<leader>cM", "<cmd>CMakeSelectBuildTarget<cr>",         "CMake: Select target")
+
+      -- Auto-cd to the nearest CMakeLists.txt ancestor when opening a C/C++ file
+      -- so cmake-tools.nvim can find the project regardless of where nvim was launched.
+      vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
+        pattern = { "*.c", "*.cc", "*.cpp", "*.cxx", "*.h", "*.hh", "*.hpp", "*.hxx", "CMakeLists.txt" },
+        callback = function(ev)
+          local file = vim.api.nvim_buf_get_name(ev.buf)
+          if file == "" then return end
+          local root = vim.fs.root(file, { "CMakeLists.txt" })
+          if root and vim.fn.getcwd() ~= root then
+            vim.cmd("tcd " .. vim.fn.fnameescape(root))
+          end
+        end,
+      })
 
       -- Debugger step commands — require('dap') lazy-loads nvim-dap
       set("n", "<F9>",   function() require("dap").toggle_breakpoint() end, "DAP: Toggle breakpoint")
