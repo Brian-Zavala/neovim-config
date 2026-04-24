@@ -34,6 +34,96 @@ return {
       set("n", "<F8>",   function() require("dap").step_over() end,         "DAP: Step over")
       set("n", "<F7>",   function() require("dap").step_into() end,         "DAP: Step into")
       set("n", "<S-F8>", function() require("dap").step_out() end,          "DAP: Step out")
+
+      -- Complete Statement: close unclosed (), [], {}, append `;` if missing,
+      -- drop to a new auto-indented line below. For if/while/for/switch/else
+      -- block keywords, append ` {` and open an indented block with closing `}`.
+      local function complete_statement()
+        local row = vim.api.nvim_win_get_cursor(0)[1]
+        local line = vim.api.nvim_buf_get_lines(0, row - 1, row, false)[1] or ""
+
+        local stack = {}
+        local in_str, str_char = false, nil
+        local i = 1
+        while i <= #line do
+          local c = line:sub(i, i)
+          if in_str then
+            if c == "\\" then
+              i = i + 1
+            elseif c == str_char then
+              in_str = false
+            end
+          else
+            if c == '"' or c == "'" then
+              in_str, str_char = true, c
+            elseif c == "/" and line:sub(i, i + 1) == "//" then
+              break
+            elseif c == "(" or c == "[" or c == "{" then
+              table.insert(stack, c)
+            elseif c == ")" or c == "]" or c == "}" then
+              if #stack > 0 then table.remove(stack) end
+            end
+          end
+          i = i + 1
+        end
+
+        -- If the only unclosed opener is a trailing `{`, leave it alone.
+        local line_trimmed = line:match("^(.-)%s*$") or ""
+        if #stack == 1 and stack[1] == "{" and line_trimmed:sub(-1) == "{" then
+          stack = {}
+        end
+
+        local close_map = { ["("] = ")", ["["] = "]", ["{"] = "}" }
+        local closers = ""
+        for j = #stack, 1, -1 do
+          closers = closers .. close_map[stack[j]]
+        end
+
+        local updated = line .. closers
+        local trimmed = updated:match("^(.-)%s*$") or updated
+        local stripped = trimmed:gsub("^%s+", "")
+        local last = trimmed:sub(-1)
+
+        local is_block = stripped:match("^if%s*%(")
+          or stripped:match("^while%s*%(")
+          or stripped:match("^for%s*%(")
+          or stripped:match("^switch%s*%(")
+          or stripped:match("^else%s+if%s*%(")
+          or stripped:match("^else$")
+          or stripped:match("^do$")
+
+        if is_block and last ~= "{" then
+          updated = trimmed .. " {"
+        elseif last == "{" or last == ";" then
+          updated = trimmed
+        else
+          updated = trimmed .. ";"
+        end
+
+        vim.api.nvim_buf_set_lines(0, row - 1, row, false, { updated })
+        vim.api.nvim_win_set_cursor(0, { row, #updated })
+
+        if updated:sub(-1) == "{" then
+          local outer_indent = (line:match("^(%s*)") or "")
+          vim.cmd("normal! o")
+          local inner_row = vim.api.nvim_win_get_cursor(0)[1]
+          vim.api.nvim_buf_set_lines(0, inner_row, inner_row, false,
+            { outer_indent .. "}" })
+          local inner_line = vim.api.nvim_buf_get_lines(0, inner_row - 1, inner_row, false)[1] or ""
+          vim.api.nvim_win_set_cursor(0, { inner_row, #inner_line })
+          vim.cmd("startinsert!")
+        else
+          vim.cmd("normal! o")
+          vim.cmd("startinsert!")
+        end
+      end
+
+      set({ "n", "i" }, "<C-S-CR>", function()
+        if vim.fn.mode():sub(1, 1) == "i" then
+          vim.cmd("stopinsert")
+        end
+        complete_statement()
+      end, "Complete current statement")
     end,
     opts = {
       cmake_command = "cmake",
