@@ -22,17 +22,42 @@ return {
         vim.keymap.set(mode, lhs, rhs, { desc = desc, silent = true })
       end
 
-      -- CMake build/run/debug — these <cmd> invocations lazy-load cmake-tools.nvim
-      set("n", "<C-F9>",   "<cmd>CMakeBuild<cr>",                       "CMake: Build")
-      set("n", "<S-F10>",  "<cmd>CMakeRun<cr>",                         "CMake: Run")
-      set("n", "<S-F9>",   "<cmd>CMakeDebug<cr>",                       "CMake: Debug")
-      set("n", "<C-S-F9>", "<cmd>CMakeClean<cr><cmd>CMakeBuild<cr>",    "CMake: Rebuild")
-      -- F6 for target picker: <leader>cm is :Mason in LazyVim and <leader>cM is
-      -- "Add Missing Imports" from the TypeScript extra. Function key avoids both.
-      set("n", "<F6>", "<cmd>CMakeSelectBuildTarget<cr>",               "CMake: Select target")
+      -- Resolve the nearest CMakeLists.txt ancestor of the current buffer and
+      -- tab-local-cd into it. Called before every CMake command so the user
+      -- can be anywhere (or even in a buffer opened via a picker) and the
+      -- build still targets the right project.
+      local function ensure_cmake_root()
+        local path = vim.api.nvim_buf_get_name(0)
+        if path == "" then return end
+        local root = vim.fs.root(path, { "CMakeLists.txt" })
+        if root and vim.fn.getcwd() ~= root then
+          vim.cmd("tcd " .. vim.fn.fnameescape(root))
+          vim.notify("CMake project: " .. root, vim.log.levels.INFO)
+        end
+      end
 
-      -- Auto-cd to the nearest CMakeLists.txt ancestor when opening a C/C++ file
-      -- so cmake-tools.nvim can find the project regardless of where nvim was launched.
+      local cmake = function(cmd)
+        return function()
+          ensure_cmake_root()
+          vim.cmd(cmd)
+        end
+      end
+
+      -- CMake build/run/debug. Self-healing: each key re-resolves project root first.
+      set("n", "<C-F9>",   cmake("CMakeBuild"),              "CMake: Build")
+      set("n", "<S-F10>",  cmake("CMakeRun"),                "CMake: Run")
+      set("n", "<S-F9>",   cmake("CMakeDebug"),              "CMake: Debug")
+      set("n", "<C-S-F9>", function()
+        ensure_cmake_root()
+        vim.cmd("CMakeClean")
+        vim.cmd("CMakeBuild")
+      end, "CMake: Rebuild")
+      -- F6 for target picker: <leader>cm is :Mason, <leader>cM is TypeScript
+      -- "Add Missing Imports". Function key avoids both.
+      set("n", "<F6>",     cmake("CMakeSelectBuildTarget"),  "CMake: Select target")
+
+      -- Also set cwd when opening a C/C++ file, so typing :CMakeBuild directly
+      -- (without going through our keymaps) also works.
       vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
         pattern = { "*.c", "*.cc", "*.cpp", "*.cxx", "*.h", "*.hh", "*.hpp", "*.hxx", "CMakeLists.txt" },
         callback = function(ev)
