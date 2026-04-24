@@ -1,11 +1,31 @@
 -- CLion-like C++ workflow on top of LazyVim.
 -- See docs/specs/2026-04-23-clion-like-cpp-neovim-design.md
 
+-- Shared so both the plugin spec's `opts` and the keymap-level setup-refresh
+-- reference the exact same table. Hoisted here (not inlined in opts) because
+-- cmake-tools.nvim captures cwd at module-load time, so if the active project
+-- changes mid-session we call setup() again to rebuild config with new cwd.
+local cmake_opts = {
+  cmake_command = "cmake",
+  cmake_build_directory = "build",
+  cmake_generate_options = { "-G", "Ninja" },
+  cmake_soft_link_compile_commands = true,
+  cmake_dap_configuration = {
+    name = "cpp",
+    type = "codelldb",
+    request = "launch",
+    stopOnEntry = false,
+  },
+}
+
 return {
   -- CMake project integration: target picker, Build/Run/Debug commands.
   {
     "Civitasv/cmake-tools.nvim",
-    ft = { "c", "cpp", "cmake" },
+    -- Deliberately NOT ft-loaded: FileType fires during BufRead, before our
+    -- BufReadPost autocmd can tcd to the project root, which means the plugin
+    -- would cache the wrong cwd. Load only on first :CMake* command instead,
+    -- which happens via our keymaps *after* ensure_cmake_root() runs.
     cmd = {
       "CMakeGenerate",
       "CMakeBuild",
@@ -57,6 +77,11 @@ return {
         return false
       end
 
+      -- Track which cwd cmake-tools.nvim was last configured against.
+      -- When cwd changes (project switch), call setup again to rebuild its
+      -- internal Config with the new cwd — this is the ONLY way to update
+      -- the plugin's module-level cached cwd.
+      local last_cmake_cwd = nil
       local cmake = function(cmd)
         return function()
           if not ensure_cmake_root() then
@@ -68,6 +93,11 @@ return {
             )
             return
           end
+          local cur = vim.fn.getcwd()
+          if package.loaded["cmake-tools"] and last_cmake_cwd ~= cur then
+            require("cmake-tools").setup(cmake_opts)
+          end
+          last_cmake_cwd = cur
           vim.cmd(cmd)
         end
       end
@@ -195,18 +225,7 @@ return {
         complete_statement()
       end, "Complete current statement")
     end,
-    opts = {
-      cmake_command = "cmake",
-      cmake_build_directory = "build",
-      cmake_generate_options = { "-G", "Ninja" },
-      cmake_soft_link_compile_commands = true,
-      cmake_dap_configuration = {
-        name = "cpp",
-        type = "codelldb",
-        request = "launch",
-        stopOnEntry = false,
-      },
-    },
+    opts = cmake_opts,
   },
 
   -- clangd AST / inlay-hint enhancements. Does NOT re-register clangd
