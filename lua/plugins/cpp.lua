@@ -17,6 +17,24 @@ return {
       "CMakeSelectBuildType",
     },
     dependencies = { "nvim-lua/plenary.nvim" },
+    init = function()
+      local set = function(mode, lhs, rhs, desc)
+        vim.keymap.set(mode, lhs, rhs, { desc = desc, silent = true })
+      end
+
+      -- CMake build/run/debug — these <cmd> invocations lazy-load cmake-tools.nvim
+      set("n", "<C-F9>",   "<cmd>CMakeBuild<cr>",                       "CMake: Build")
+      set("n", "<S-F10>",  "<cmd>CMakeRun<cr>",                         "CMake: Run")
+      set("n", "<S-F9>",   "<cmd>CMakeDebug<cr>",                       "CMake: Debug")
+      set("n", "<C-S-F9>", "<cmd>CMakeClean<cr><cmd>CMakeBuild<cr>",    "CMake: Rebuild")
+      set("n", "<leader>cm", "<cmd>CMakeSelectBuildTarget<cr>",         "CMake: Select target")
+
+      -- Debugger step commands — require('dap') lazy-loads nvim-dap
+      set("n", "<F9>",   function() require("dap").toggle_breakpoint() end, "DAP: Toggle breakpoint")
+      set("n", "<F8>",   function() require("dap").step_over() end,         "DAP: Step over")
+      set("n", "<F7>",   function() require("dap").step_into() end,         "DAP: Step into")
+      set("n", "<S-F8>", function() require("dap").step_out() end,          "DAP: Step out")
+    end,
     opts = {
       cmake_command = "cmake",
       cmake_build_directory = "build",
