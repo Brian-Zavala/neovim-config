@@ -27,8 +27,9 @@ return {
       set("n", "<S-F10>",  "<cmd>CMakeRun<cr>",                         "CMake: Run")
       set("n", "<S-F9>",   "<cmd>CMakeDebug<cr>",                       "CMake: Debug")
       set("n", "<C-S-F9>", "<cmd>CMakeClean<cr><cmd>CMakeBuild<cr>",    "CMake: Rebuild")
-      -- <leader>cm is taken by LazyVim's :Mason — use <leader>cM for CMake target
-      set("n", "<leader>cM", "<cmd>CMakeSelectBuildTarget<cr>",         "CMake: Select target")
+      -- F6 for target picker: <leader>cm is :Mason in LazyVim and <leader>cM is
+      -- "Add Missing Imports" from the TypeScript extra. Function key avoids both.
+      set("n", "<F6>", "<cmd>CMakeSelectBuildTarget<cr>",               "CMake: Select target")
 
       -- Auto-cd to the nearest CMakeLists.txt ancestor when opening a C/C++ file
       -- so cmake-tools.nvim can find the project regardless of where nvim was launched.
