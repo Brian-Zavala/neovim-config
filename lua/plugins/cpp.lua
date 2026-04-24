@@ -22,23 +22,52 @@ return {
         vim.keymap.set(mode, lhs, rhs, { desc = desc, silent = true })
       end
 
-      -- Resolve the nearest CMakeLists.txt ancestor of the current buffer and
-      -- tab-local-cd into it. Called before every CMake command so the user
-      -- can be anywhere (or even in a buffer opened via a picker) and the
-      -- build still targets the right project.
+      -- Resolve the nearest CMakeLists.txt-rooted project and tab-cd into it.
+      -- Search order:
+      --   1. Current buffer's file path (walk up)
+      --   2. Every listed loaded buffer's file path (walk up)
+      --      — catches the "focus is on neo-tree sidebar" case
+      --   3. Current working directory (walk up)
+      -- Returns true if a project root was found and cwd now points at it.
       local function ensure_cmake_root()
-        local path = vim.api.nvim_buf_get_name(0)
-        if path == "" then return end
-        local root = vim.fs.root(path, { "CMakeLists.txt" })
-        if root and vim.fn.getcwd() ~= root then
-          vim.cmd("tcd " .. vim.fn.fnameescape(root))
-          vim.notify("CMake project: " .. root, vim.log.levels.INFO)
+        local candidates = {}
+        local function push(p)
+          if p and p ~= "" and vim.fn.filereadable(p) == 1 then
+            table.insert(candidates, p)
+          end
         end
+        push(vim.api.nvim_buf_get_name(0))
+        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+          if vim.bo[buf].buflisted and vim.api.nvim_buf_is_loaded(buf) then
+            push(vim.api.nvim_buf_get_name(buf))
+          end
+        end
+        table.insert(candidates, vim.fn.getcwd())
+
+        for _, path in ipairs(candidates) do
+          local root = vim.fs.root(path, { "CMakeLists.txt" })
+          if root then
+            if vim.fn.getcwd() ~= root then
+              vim.cmd("tcd " .. vim.fn.fnameescape(root))
+              vim.notify("CMake project: " .. root, vim.log.levels.INFO)
+            end
+            return true
+          end
+        end
+        return false
       end
 
       local cmake = function(cmd)
         return function()
-          ensure_cmake_root()
+          if not ensure_cmake_root() then
+            vim.notify(
+              "No CMakeLists.txt found above any open file or the cwd.\n"
+                .. "Open a file from a CMake project first (any .cpp/.h inside the project).",
+              vim.log.levels.WARN,
+              { title = "CMake" }
+            )
+            return
+          end
           vim.cmd(cmd)
         end
       end
