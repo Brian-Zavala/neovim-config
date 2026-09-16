@@ -56,8 +56,11 @@ map("n", "gcc", function()
       vim.cmd("normal! ==") -- Auto-indent current line
     end
   else
-    -- Fallback to native gcc (mini.comment is disabled; feed unmapped keys to the builtin)
-    vim.api.nvim_feedkeys("gcc", "n", false)
+    -- Fallback to Neovim's builtin commenting. Native `gcc` is itself a
+    -- mapping (and this wrapper has replaced it), so noremap "gcc" would be a
+    -- no-op. Use the native `gc` operator with the `_` (current line) motion,
+    -- with remapping on so the operator mapping is honoured.
+    vim.api.nvim_feedkeys("gc_", "m", false)
   end
 end, { desc = "Comment line (works on empty lines too, with auto-indent)" })
 
