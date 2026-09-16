@@ -135,7 +135,7 @@ end
 vim.api.nvim_create_autocmd("VimEnter", {
   group = vim.api.nvim_create_augroup("syntax_health_check", { clear = true }),
   callback = function()
-    if vim.o.syntax ~= "on" and vim.o.syntax ~= "enable" then
+    if vim.fn.exists("syntax_on") ~= 1 then
       vim.notify(
         "⚠️  Syntax not enabled! This will break treesitter highlighting.\nRun :syntax enable to fix.",
         vim.log.levels.ERROR,

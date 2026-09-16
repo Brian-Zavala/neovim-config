@@ -56,7 +56,7 @@ map("n", "gcc", function()
       vim.cmd("normal! ==") -- Auto-indent current line
     end
   else
-    -- Fallback to mini.comment's gcc (feed keys to it)
+    -- Fallback to native gcc (mini.comment is disabled; feed unmapped keys to the builtin)
     vim.api.nvim_feedkeys("gcc", "n", false)
   end
 end, { desc = "Comment line (works on empty lines too, with auto-indent)" })

@@ -53,9 +53,6 @@ return {
     lazy = true,
     priority = 1000,
   },
-  {
-    "folke/tokyonight.nvim",
-    lazy = true,
-    priority = 1000,
-  },
+  -- NOTE: tokyonight is intentionally absent here; it is the active
+  -- colorscheme and is owned by lua/plugins/theme.lua.
 }
