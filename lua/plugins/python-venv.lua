@@ -1,64 +1,34 @@
+-- Python venv-aware root detection for basedpyright.
+-- MERGES with LazyVim's config. NOTE: `setup.basedpyright` only mutates opts
+-- and returns nothing, so LazyVim proceeds with its single
+-- `vim.lsp.config()` + `vim.lsp.enable()` path. Never call legacy
+-- `lspconfig.X.setup()` here (that registers a second client).
+-- (Interactive interpreter selection is handled by venv-selector.nvim.)
 return {
   {
     "neovim/nvim-lspconfig",
     opts = {
       servers = {
-        pyright = {
-          settings = {
-            python = {
-              analysis = {
-                autoSearchPaths = true,
-                useLibraryCodeForTypes = true,
-                diagnosticMode = "workspace",
-              },
-            },
-          },
-        },
+        -- Empty entry guarantees this spec's `setup` hook runs for the server
+        -- (LazyVim only calls setup hooks for listed servers).
+        basedpyright = {},
       },
       setup = {
-        pyright = function(_, opts)
-          local lspconfig = require("lspconfig")
-          local util = require("lspconfig.util")
-          
-          -- Override the default root_dir to always look for virtual environments
-          opts.root_dir = function(fname)
-            return util.root_pattern(
+        basedpyright = function(_, opts)
+          -- Prefer a project root, fall back to cwd (supports monorepos and
+          -- single-file scripts alike).
+          opts.root_dir = function(bufnr, on_dir)
+            local root = vim.fs.root(bufnr, {
               "pyproject.toml",
               "setup.py",
               "setup.cfg",
               "requirements.txt",
               "Pipfile",
               "pyrightconfig.json",
-              ".git"
-            )(fname) or util.path.dirname(fname)
+              ".git",
+            })
+            on_dir(root or vim.fn.getcwd())
           end
-          
-          -- Auto-detect virtual environment
-          opts.before_init = function(_, config)
-            local root_dir = config.root_dir
-            local venv_path = nil
-            
-            -- Check for common virtual environment locations
-            local venv_names = { ".venv", "venv", "env", ".env" }
-            for _, name in ipairs(venv_names) do
-              local path = root_dir .. "/" .. name
-              if vim.fn.isdirectory(path) == 1 then
-                venv_path = path
-                break
-              end
-            end
-            
-            if venv_path then
-              config.settings.python = vim.tbl_deep_extend("force", config.settings.python or {}, {
-                venvPath = root_dir,
-                venv = vim.fn.fnamemodify(venv_path, ":t"),
-                pythonPath = venv_path .. "/bin/python"
-              })
-            end
-          end
-          
-          lspconfig.pyright.setup(opts)
-          return true
         end,
       },
     },

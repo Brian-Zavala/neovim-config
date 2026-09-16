@@ -229,7 +229,7 @@ return {
   },
 
   -- clangd AST / inlay-hint enhancements. Does NOT re-register clangd
-  -- as an LSP server (existing lsp.lua setup is preserved).
+  -- as an LSP server (the server is owned by LazyVim's lang.clangd extra).
   {
     "p00f/clangd_extensions.nvim",
     ft = { "c", "cpp" },

@@ -1,70 +1,141 @@
+-- LSP servers, LazyVim-native style.
+--
+-- Every server is registered EXACTLY ONCE via `opts.servers`: LazyVim turns
+-- each entry into a single `vim.lsp.config()` + `vim.lsp.enable()` pair with
+-- correct mason install/exclude handling. Do NOT call
+-- `lspconfig.<server>.setup()` or `vim.lsp.enable()` manually in this repo:
+-- the old manual pattern produced duplicate clients (two rust-analyzers via
+-- rustaceanvim, ts_ls fighting vtsls, clangd registered twice), which in turn
+-- triggered the inlay-hint `Invalid 'col'` crash (see
+-- after/plugin/inlay_hint_guard.lua).
+--
+-- Ownership map (who configures what — do not add a second owner):
+--   typescript/javascript .. LazyVim `lang.typescript` + `vtsls` extras
+--   python ............... LazyVim `lang.python` extra (basedpyright is
+--                          selected via `vim.g.lazyvim_python_lsp` in
+--                          lua/config/options.lua; venv root detection lives
+--                          in lua/plugins/python-venv.lua)
+--   rust ................. `mrcjkb/rustaceanvim` (settings extended below)
+--   c/c++ ................ LazyVim `lang.clangd` extra
+--   html/css ............. lua/plugins/html-vscode-lsp.lua
+--   tailwind ............. LazyVim `lang.tailwind` extra
+--   emmet ................ below (no LazyVim extra owns it)
 return {
-  -- 1. LSP Configuration (Merged Mason + LSPConfig for dependency safety)
   {
     "neovim/nvim-lspconfig",
-    dependencies = {
-      "mason-org/mason.nvim",
-      "mason-org/mason-lspconfig.nvim",
-    },
-    config = function()
-      -- Step 1: Setup Mason (Package Manager)
-      require("mason").setup()
-
-      -- Step 2: Setup Mason-LSPConfig (The bridge)
-      require("mason-lspconfig").setup({
-        -- "ts_ls" is the new name for tsserver (TypeScript/React server)
-        ensure_installed = { 
-          "ts_ls", 
-          "html", 
-          "cssls", 
-          "tailwindcss", 
-          "emmet_language_server",
-          "pyright",  -- Python
-          "clangd"    -- C/C++ (rust_analyzer removed - using rustup)
-        },
-      })
-
-      -- Step 3: Setup LSP Servers
-      local lspconfig = require("lspconfig")
-      local capabilities = require("cmp_nvim_lsp").default_capabilities()
-
-      -- Python Setup
-      lspconfig.pyright.setup({ capabilities = capabilities })
-      
-      -- C/C++ Setup
-      lspconfig.clangd.setup({ capabilities = capabilities })
-
-      -- TypeScript / React Server Setup
-      lspconfig.ts_ls.setup({
-        capabilities = capabilities,
-        init_options = {
-          preferences = {
-            disableSuggestions = true,
+    opts = {
+      servers = {
+        -- Global key LazyVim doesn't define: rename via inc-rename with a
+        -- plain-LSP fallback. Buffer-local, only where rename is supported.
+        -- (gd/gr/K/ca/cr/co/cM/ch/uh all come from LazyVim core/extras.)
+        ["*"] = {
+          keys = {
+            {
+              "<leader>rn",
+              function()
+                local ok, _ = pcall(require, "inc_rename")
+                if ok then
+                  return ":IncRename " .. vim.fn.expand("<cword>")
+                end
+                vim.lsp.buf.rename()
+                return ""
+              end,
+              desc = "Rename Variable",
+              expr = true,
+              has = "rename",
+            },
           },
         },
-      })
-
-      -- HTML/CSS Setup
-      lspconfig.html.setup({ capabilities = capabilities })
-      lspconfig.cssls.setup({ capabilities = capabilities })
-      lspconfig.tailwindcss.setup({ capabilities = capabilities })
-
-      -- Emmet Setup
-      lspconfig.emmet_language_server.setup({
-        filetypes = {
-          "css", "eruby", "html", "javascript", "javascriptreact", 
-          "less", "sass", "scss", "svelte", "pug", 
-          "typescriptreact", "vue",
+        -- Rust is served by rustaceanvim, NOT lspconfig. This entry only stops
+        -- mason-lspconfig from auto-enabling a second rust-analyzer.
+        rust_analyzer = { enabled = false },
+        -- Python (basedpyright is selected in lua/config/options.lua).
+        basedpyright = {
+          settings = {
+            basedpyright = {
+              analysis = {
+                autoSearchPaths = true,
+                useLibraryCodeForTypes = true,
+                diagnosticMode = "openFilesOnly",
+                autoImportCompletions = true,
+                inlayHints = {
+                  variableTypes = true,
+                  functionReturnTypes = true,
+                  callArgumentNames = true,
+                  pytestParameters = true,
+                },
+              },
+            },
+          },
         },
-        capabilities = capabilities,
-      })
+        -- Emmet (no LazyVim extra owns it).
+        emmet_language_server = {
+          filetypes = {
+            "css",
+            "eruby",
+            "html",
+            "javascript",
+            "javascriptreact",
+            "less",
+            "sass",
+            "scss",
+            "svelte",
+            "pug",
+            "typescriptreact",
+            "vue",
+          },
+        },
+      },
+    },
+  },
 
-      -- Keymaps
-      vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "Go to Definition" })
-      vim.keymap.set("n", "gr", vim.lsp.buf.references, { desc = "Go to References" })
-      vim.keymap.set("n", "K", vim.lsp.buf.hover, { desc = "Hover Info" })
-      vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, { desc = "Rename Variable" })
-    end,
+  -- Rust-analyzer tuning for rustaceanvim (deep-merged with the LazyVim rust
+  -- extra's own opts). Previously lived in a manual lspconfig.rust_analyzer
+  -- setup, which spawned a SECOND rust-analyzer next to rustaceanvim's.
+  {
+    "mrcjkb/rustaceanvim",
+    opts = {
+      server = {
+        default_settings = {
+          ["rust-analyzer"] = {
+            imports = {
+              granularity = {
+                group = "module",
+              },
+              prefix = "self",
+            },
+            -- Modern schema: `check` (the legacy `checkOnSave = { command }
+            --` map is rejected by current rust-analyzer).
+            check = {
+              command = "clippy",
+            },
+            procMacro = {
+              ignored = {
+                ["async-trait"] = { "async_trait" },
+                ["napi-derive"] = { "napi" },
+                ["async-recursion"] = { "async_recursion" },
+              },
+            },
+            inlayHints = {
+              bindingModeHints = { enable = false },
+              chainingHints = { enable = true },
+              closingBraceHints = { enable = true, minLines = 25 },
+              closureReturnTypeHints = { enable = "with_block" },
+              lifetimeElisionHints = { enable = "never", useParameterNames = false },
+              maxLength = 25,
+              parameterHints = { enable = true },
+              reborrowHints = { enable = "never" },
+              renderColons = true,
+              typeHints = {
+                enable = true,
+                hideClosureInitialization = false,
+                hideNamedConstructor = false,
+              },
+            },
+          },
+        },
+      },
+    },
   },
 
   -- 2. Autocomplete (The UI)
@@ -120,10 +191,10 @@ return {
           ["<CR>"] = cmp.mapping.confirm({ select = true }),
         },
         sources = cmp.config.sources({
-          { name = "nvim-lsp" },
-          { name = "luasnip" },
-          { name = "buffer" },
-          { name = "path" },
+          { name = "nvim_lsp", priority = 1000 },
+          { name = "luasnip", priority = 750 },
+          { name = "buffer", priority = 500 },
+          { name = "path", priority = 250 },
         }),
       })
     end,

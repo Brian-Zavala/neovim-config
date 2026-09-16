@@ -4,7 +4,7 @@ return {
     "neovim/nvim-lspconfig",
     opts = {
       servers = {
-        ruff_lsp = true, -- This disables ruff completely
+        ruff_lsp = { enabled = false }, -- keep ruff-lsp disabled (ruff server from the python extra covers lint)
       },
     },
   },
