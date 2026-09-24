@@ -9,7 +9,8 @@ local cmake_opts = {
   cmake_command = "cmake",
   cmake_build_directory = "build",
   cmake_generate_options = { "-G", "Ninja" },
-  cmake_soft_link_compile_commands = true,
+  -- Symlinks need admin/Developer Mode on Windows, so copy there instead
+  cmake_soft_link_compile_commands = vim.fn.has("win32") == 0,
   cmake_dap_configuration = {
     name = "cpp",
     type = "codelldb",

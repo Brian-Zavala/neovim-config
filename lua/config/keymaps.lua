@@ -10,6 +10,11 @@ map("i", "jj", "<Esc>", { desc = "Exit insert mode with jj" })
 -- Use 'mm' to escape from visual mode
 map("v", "mm", "<Esc>", { desc = "Exit visual mode with mm" })
 
+-- Windows can't suspend nvim; <C-z> would just hang the terminal
+if vim.fn.has("win32") == 1 then
+  map({ "n", "v" }, "<C-z>", "<Nop>")
+end
+
 map("n", "<C-/>", function()
   _G.TermHereToggle()
 end, { noremap = true, silent = true })

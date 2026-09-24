@@ -26,8 +26,19 @@ vim.opt.undodir = undodir
 vim.fn.mkdir(undodir, "p") -- create the dir if missing
 vim.opt.splitbelow = true
 
--- Set shell to zsh (matches system shell)
-vim.opt.shell = "/usr/bin/zsh"
+if vim.fn.has("win32") == 1 then
+  -- PowerShell 7 as the shell on Windows (see :h shell-powershell)
+  vim.opt.shell = "pwsh"
+  vim.opt.shellcmdflag =
+    "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy RemoteSigned -Command [Console]::InputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new();$PSDefaultParameterValues['Out-File:Encoding']='utf8';$PSStyle.OutputRendering='plaintext';Remove-Alias -Force -ErrorAction SilentlyContinue tee;"
+  vim.opt.shellredir = '2>&1 | %%{ "$_" } | Out-File %s; exit $LastExitCode'
+  vim.opt.shellpipe = '2>&1 | %%{ "$_" } | tee %s; exit $LastExitCode'
+  vim.opt.shellquote = ""
+  vim.opt.shellxquote = ""
+else
+  -- Set shell to zsh (matches system shell)
+  vim.opt.shell = "/usr/bin/zsh"
+end
 
 -- Force .jsx files to be recognized as 'javascriptreact' filetype
 vim.filetype.add({
@@ -43,7 +54,8 @@ vim.treesitter.language.register("tsx", "javascriptreact")
 -- Ensure ~/.cargo/bin is in PATH for rust-analyzer/cargo
 local cargo_bin = vim.fn.expand("~/.cargo/bin")
 if vim.fn.isdirectory(cargo_bin) == 1 then
-  vim.env.PATH = cargo_bin .. ":" .. vim.env.PATH
+  local sep = vim.fn.has("win32") == 1 and ";" or ":"
+  vim.env.PATH = cargo_bin .. sep .. vim.env.PATH
 end
 
 -- AI completions: show as inline ghost text (Supermaven) instead of routing

@@ -14,7 +14,8 @@ return {
 			if not pinned then
 				return
 			end
-			local fallback = opts.colorscheme
+			-- No Omarchy theme.lua off Arch (e.g. Windows): fall back to LazyVim's default
+			local fallback = opts.colorscheme or "tokyonight"
 			-- LazyVim accepts a function; lazy.nvim's ColorSchemePre hook still
 			-- lazy-loads the colorscheme plugin inside vim.cmd.colorscheme.
 			opts.colorscheme = function()
