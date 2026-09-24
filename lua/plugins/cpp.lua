@@ -11,6 +11,9 @@ local cmake_opts = {
   cmake_generate_options = { "-G", "Ninja" },
   -- Symlinks need admin/Developer Mode on Windows, so copy there instead
   cmake_soft_link_compile_commands = vim.fn.has("win32") == 0,
+  -- cmake-tools builds this autocmd pattern from a backslash cwd on Windows,
+  -- which makes setup() throw "Failed to set autocmd"
+  cmake_regenerate_on_save = vim.fn.has("win32") == 0,
   cmake_dap_configuration = {
     name = "cpp",
     type = "codelldb",
@@ -83,6 +86,26 @@ return {
       -- internal Config with the new cwd — this is the ONLY way to update
       -- the plugin's module-level cached cwd.
       local last_cmake_cwd = nil
+
+      -- cmake-tools asks for a launch/build target even when the project has only
+      -- one; pick it automatically so Shift+F10 is a single keypress. Wrapped on
+      -- first use (after Snacks has installed its vim.ui.select).
+      local single_target_wrapped = false
+      local function auto_pick_single_target()
+        if single_target_wrapped then
+          return
+        end
+        single_target_wrapped = true
+        local select = vim.ui.select
+        vim.ui.select = function(items, opts, on_choice)
+          local prompt = opts and opts.prompt or ""
+          if #items == 1 and prompt:match("^Select .*target") then
+            return on_choice(items[1], 1)
+          end
+          return select(items, opts, on_choice)
+        end
+      end
+
       local cmake = function(cmd)
         return function()
           if not ensure_cmake_root() then
@@ -99,6 +122,7 @@ return {
             require("cmake-tools").setup(cmake_opts)
           end
           last_cmake_cwd = cur
+          auto_pick_single_target()
           vim.cmd(cmd)
         end
       end
@@ -237,6 +261,23 @@ return {
     opts = {
       ast = { role_icons = { type = "🄣", declaration = "🄓", expression = "🄔", statement = ";", specifier = "🄢", ["template argument"] = "🆃" } },
     },
+  },
+
+  -- Windows: let clangd ask MSYS2's g++ for its system headers (<iostream> etc.),
+  -- otherwise it guesses an MSVC target and can't find libstdc++.
+  {
+    "neovim/nvim-lspconfig",
+    opts = function(_, opts)
+      if vim.fn.has("win32") == 0 then
+        return
+      end
+      local clangd = opts.servers and opts.servers.clangd
+      if clangd then
+        clangd.cmd = vim.list_extend(vim.deepcopy(clangd.cmd or { "clangd" }), {
+          "--query-driver=C:/msys64/ucrt64/bin/*.exe",
+        })
+      end
+    end,
   },
 
   -- Ensure the codelldb debug adapter is installed, and register it with nvim-dap.
