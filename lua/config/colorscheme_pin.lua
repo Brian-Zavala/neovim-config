@@ -9,11 +9,30 @@ local M = {}
 M.file = vim.fn.stdpath("state") .. "/omarchy-colorscheme-pin"
 M.applying = false -- true while a colorscheme is applied programmatically (hotreload)
 
--- Colorscheme Omarchy wants, read fresh from the symlinked spec. dofile rather
+-- The Omarchy theme spec: the machine-local lua/plugins/theme.lua (gitignored;
+-- Omarchy's symlink or omarchy-win's stand-in), else Omarchy's current theme
+-- file directly. nil when neither exists (e.g. a fresh clone off Omarchy).
+function M.theme_file()
+	for _, path in ipairs({
+		vim.fn.stdpath("config") .. "/lua/plugins/theme.lua",
+		vim.fn.expand("~/.local/state/omarchy/current/theme/neovim.lua"),
+		vim.fn.expand("~/.config/omarchy/current/theme/neovim.lua"),
+	}) do
+		if vim.uv.fs_stat(path) then
+			return path
+		end
+	end
+end
+
+-- Colorscheme Omarchy wants, read fresh from the theme spec. dofile rather
 -- than require so package.loaded caching cannot return a stale value after a
 -- theme switch.
 function M.omarchy()
-	local ok, spec = pcall(dofile, vim.fn.stdpath("config") .. "/lua/plugins/theme.lua")
+	local file = M.theme_file()
+	if not file then
+		return nil
+	end
+	local ok, spec = pcall(dofile, file)
 	if not ok or type(spec) ~= "table" then
 		return nil
 	end

@@ -41,3 +41,9 @@ Thumbs.db
 
 # Omarchy-only plugins (keep local; don't pull onto clean non-Omarchy distros)
 lua/plugins/omarchy-theme-hotreload.lua
+# Machine-local Omarchy theme spec (Omarchy symlink / omarchy-win stand-in).
+# lua/plugins/omarchy-theme.lua loads the Omarchy theme when this is missing.
+lua/plugins/theme.lua
+
+# Old config snapshots (use git history instead)
+backups/
