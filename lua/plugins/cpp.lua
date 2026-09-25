@@ -278,6 +278,13 @@ return {
         return
       end
       local cmd = vim.deepcopy(clangd.cmd or { "clangd" })
+      for i, arg in ipairs(cmd) do
+        -- clangd 23 rejects the bare flag LazyVim passes ("Provide a boolean
+        -- value"); =1 works on older versions too.
+        if arg == "--function-arg-placeholders" then
+          cmd[i] = "--function-arg-placeholders=1"
+        end
+      end
       table.insert(cmd, "--log=error")
       local gxx = vim.fn.has("win32") == 1 and vim.fn.exepath("g++") or ""
       if gxx ~= "" then
