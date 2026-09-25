@@ -263,32 +263,36 @@ return {
     },
   },
 
-  -- Windows: let clangd ask MSYS2's g++ for its system headers (<iostream> etc.),
-  -- otherwise it guesses an MSVC target and can't find libstdc++.
+  -- clangd flags:
+  --  * --log=error: Neovim logs every line a server writes to stderr at ERROR
+  --    level, and clangd's default (info) writes one per request, so lsp.log
+  --    grows by megabytes. Only real errors are kept.
+  --  * --query-driver (Windows): let clangd ask the g++ on PATH (e.g. MSYS2 /
+  --    WinLibs) for its system headers (<iostream> etc.), otherwise it guesses
+  --    an MSVC target and can't find libstdc++. Skipped when no g++ exists.
   {
     "neovim/nvim-lspconfig",
     opts = function(_, opts)
-      if vim.fn.has("win32") == 0 then
+      local clangd = opts.servers and opts.servers.clangd
+      if not clangd then
         return
       end
-      local clangd = opts.servers and opts.servers.clangd
-      if clangd then
-        clangd.cmd = vim.list_extend(vim.deepcopy(clangd.cmd or { "clangd" }), {
-          "--query-driver=C:/msys64/ucrt64/bin/*.exe",
-        })
+      local cmd = vim.deepcopy(clangd.cmd or { "clangd" })
+      table.insert(cmd, "--log=error")
+      local gxx = vim.fn.has("win32") == 1 and vim.fn.exepath("g++") or ""
+      if gxx ~= "" then
+        local dir = vim.fs.dirname(vim.fs.normalize(gxx))
+        table.insert(cmd, "--query-driver=" .. dir .. "/*.exe")
       end
+      clangd.cmd = cmd
     end,
   },
 
-  -- Ensure the codelldb debug adapter is installed, and register it with nvim-dap.
+  -- Register the codelldb adapter with nvim-dap (Mason installs codelldb via
+  -- the lang.clangd / lang.rust extras). The command is resolved on PATH when
+  -- a session starts, so it works on the first run before Mason finishes.
   {
     "mfussenegger/nvim-dap",
-    dependencies = {
-      { "mason-org/mason.nvim", opts = function(_, opts)
-        opts.ensure_installed = opts.ensure_installed or {}
-        table.insert(opts.ensure_installed, "codelldb")
-      end },
-    },
     opts = function()
       local dap = require("dap")
       if not dap.adapters["codelldb"] then
@@ -297,7 +301,7 @@ return {
           host = "127.0.0.1",
           port = "${port}",
           executable = {
-            command = vim.fn.exepath("codelldb"),
+            command = "codelldb",
             args = { "--port", "${port}" },
           },
         }

@@ -1,18 +1,15 @@
+-- Pure-Lua live server (v0.2+): no npm, no setup() call.
+-- Installed from Forgejo; the GitHub repo is removed on 2026-10-31.
 return {
   {
-    "barrett-ruth/live-server.nvim",
-    build = "npm install -g live-server", -- installs live-server globally
-    cmd = { "LiveServerStart", "LiveServerStop" }, -- lazy-load only when used
-    config = function()
-      require("live-server").setup({
-        -- Optional configuration (defaults are fine)
-        port = 5500, -- Port number (default)
-        browser_command = "", -- Uses system default browser
-        quiet = false, -- Show logs
-        no_browser = false, -- Open browser automatically
-        root = ".", -- Project root directory
-        open = true, -- Auto-open index.html
-      })
+    url = "https://forge.barrettruth.com/barrettruth/live-server.nvim",
+    name = "live-server.nvim",
+    cmd = { "LiveServerStart", "LiveServerStop", "LiveServerToggle" }, -- lazy-load only when used
+    init = function()
+      vim.g.live_server = {
+        port = 5500,
+        browser = true, -- open the system default browser on start
+      }
     end,
   },
 }
