@@ -1,0 +1,66 @@
+-- Skip Mason packages whose toolchain isn't installed (see config/toolchains.lua),
+-- so a fresh clone starts without "Could not find executable go/npm/python"
+-- errors. The features come back by themselves once the toolchain is installed.
+--
+-- NOTE: the "zz-" prefix is load-bearing. lazy.nvim imports spec modules in
+-- modname order and calls opts functions in that order, so this must run after
+-- every other file that adds to ensure_installed / servers (conform.lua,
+-- lsp.lua, html-vscode-lsp.lua, ...).
+local tc = require("config.toolchains")
+
+return {
+  {
+    "mason-org/mason.nvim",
+    opts = function(_, opts)
+      tc.filter(opts.ensure_installed)
+    end,
+  },
+
+  -- LazyVim hands every server without `mason = false` to mason-lspconfig.
+  {
+    "neovim/nvim-lspconfig",
+    opts = function(_, opts)
+      local ok, mappings = pcall(function()
+        return require("mason-lspconfig.mappings").get_mason_map().lspconfig_to_package
+      end)
+      if not ok then
+        return
+      end
+      for server, sopts in pairs(opts.servers or {}) do
+        local pkg = mappings[server]
+        if pkg and sopts ~= false and not tc.can_install(pkg) then
+          tc.skipped[pkg] = tc.needs(pkg)
+          if type(sopts) ~= "table" then
+            sopts = {}
+            opts.servers[server] = sopts
+          end
+          -- Don't install it, and don't start it (the binary isn't there).
+          sopts.mason = false
+          sopts.enabled = false
+        end
+      end
+    end,
+  },
+
+  -- The dap.core extra auto-installs a package for every registered adapter.
+  {
+    "jay-babu/mason-nvim-dap.nvim",
+    optional = true,
+    opts = function(_, opts)
+      local ok, source = pcall(require, "mason-nvim-dap.mappings.source")
+      if not ok then
+        return
+      end
+      local exclude = {}
+      for adapter, pkg in pairs(source.nvim_dap_to_package) do
+        if not tc.can_install(pkg) then
+          exclude[#exclude + 1] = adapter
+        end
+      end
+      if opts.automatic_installation and #exclude > 0 then
+        opts.automatic_installation = { exclude = exclude }
+      end
+      tc.filter(opts.ensure_installed)
+    end,
+  },
+}
