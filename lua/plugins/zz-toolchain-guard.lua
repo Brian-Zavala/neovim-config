@@ -42,6 +42,61 @@ return {
     end,
   },
 
+  -- No C compiler: don't try to build treesitter parsers (LazyVim would show an
+  -- "Unmet requirements" error on every start). Neovim's bundled parsers (lua,
+  -- vim, vimdoc, markdown, c, query) keep working; the rest install on the
+  -- first start after a compiler is installed.
+  {
+    "nvim-treesitter/nvim-treesitter",
+    build = (not tc.cc.ok) and false or nil,
+    opts = function(_, opts)
+      if not tc.cc.ok then
+        tc.skipped["treesitter parsers"] = "a C compiler"
+        opts.ensure_installed = {}
+      end
+    end,
+  },
+
+  -- Only run linters whose command exists. On Windows nvim-lint runs every
+  -- linter through cmd.exe, so a missing one (golangci-lint without Go,
+  -- markdownlint-cli2 without npm, ...) pops "Linter command `cmd.exe`
+  -- exited with code: 1" on every save. Uses LazyVim's `condition` extension.
+  {
+    "mfussenegger/nvim-lint",
+    optional = true,
+    opts = function(_, opts)
+      opts.linters = opts.linters or {}
+      local names = {}
+      for _, list in pairs(opts.linters_by_ft or {}) do
+        for _, name in ipairs(type(list) == "table" and list or {}) do
+          names[name] = true
+        end
+      end
+      for name in pairs(names) do
+        local ok, linter = pcall(require, "lint.linters." .. name)
+        local override = opts.linters[name]
+        -- Only table linters: LazyVim replaces a function linter with a table
+        -- override instead of merging it.
+        if ok and type(linter) == "table" and (override == nil or type(override) == "table") then
+          override = override or {}
+          local condition = override.condition
+          override.condition = function(ctx)
+            if condition and not condition(ctx) then
+              return false
+            end
+            local l = require("lint").linters[name]
+            local cmd = type(l) == "table" and l.cmd
+            if type(cmd) == "function" then
+              cmd = cmd()
+            end
+            return type(cmd) ~= "string" or vim.fn.executable(cmd) == 1
+          end
+          opts.linters[name] = override
+        end
+      end
+    end,
+  },
+
   -- The dap.core extra auto-installs a package for every registered adapter.
   {
     "jay-babu/mason-nvim-dap.nvim",

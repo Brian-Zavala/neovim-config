@@ -46,6 +46,29 @@ M.toolchains = {
   },
 }
 
+-- C compiler for building nvim-treesitter parsers. Same rules as LazyVim's
+-- check (lazyvim/util/treesitter.lua), which also accepts gcc on Windows.
+local function have_cc()
+  if vim.env.CC or (not is_win and exe("cc")) then
+    return true
+  end
+  if is_win then
+    return exe("cl")
+      or exe("gcc")
+      or vim.fn.globpath(
+          "C:/Program Files (x86)/Microsoft Visual Studio",
+          "*/*/VC/Tools/MSVC/*/bin/Hostx64/x64/cl.exe",
+          true,
+          true
+        )[1] ~= nil
+  end
+  return false
+end
+M.cc = {
+  ok = have_cc(),
+  hint = is_win and "winget install BrechtSanders.WinLibs.POSIX.UCRT" or "sudo pacman -S base-devel",
+}
+
 -- Fallback for when the Mason registry isn't downloaded yet (first launch on a
 -- new PC). Keep in sync when enabling extras that pull in new packages.
 local fallback = {
@@ -71,6 +94,26 @@ end
 -- is downloaded prebuilt but runs under node.
 local runtime_needs = { ["golangci-lint"] = "go", ["js-debug-adapter"] = "npm" }
 
+-- package name -> purl ("pkg:golang/...") from the downloaded Mason registry.
+-- Built from the specs rather than get_package(), which logs an error to
+-- mason.log for every name it doesn't know (e.g. before the first download).
+local registry_ids
+function M.registry_ids()
+  if not registry_ids then
+    local ok, specs = pcall(function()
+      return require("mason-registry").get_all_package_specs()
+    end)
+    if not ok or type(specs) ~= "table" or #specs == 0 then
+      return {} -- not downloaded yet: use the fallback table, retry next call
+    end
+    registry_ids = {}
+    for _, spec in ipairs(specs) do
+      registry_ids[spec.name] = spec.source and spec.source.id
+    end
+  end
+  return registry_ids
+end
+
 ---Name of the toolchain a Mason package needs, or nil if it's a prebuilt binary.
 ---@param pkg string Mason package name
 ---@return string?
@@ -78,11 +121,8 @@ function M.needs(pkg)
   if runtime_needs[pkg] then
     return runtime_needs[pkg]
   end
-  local ok, id = pcall(function()
-    local registry = require("mason-registry")
-    return registry.has_package(pkg) and registry.get_package(pkg).spec.source.id or nil
-  end)
-  if ok and type(id) == "string" then
+  local id = M.registry_ids()[pkg]
+  if id then
     for tc, info in pairs(M.toolchains) do
       if vim.startswith(id, info.purl) then
         return tc

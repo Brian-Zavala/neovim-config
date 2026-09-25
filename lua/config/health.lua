@@ -32,17 +32,10 @@ function M.check()
       vim.health.warn(tool .. " not found", "run " .. installer)
     end
   end
-  local cc = vim.env.CC or ""
-  -- Same compilers LazyVim's treesitter check accepts (or $CC).
-  for _, c in ipairs({ "cc", "gcc", "cl" }) do
-    if cc == "" and vim.fn.executable(c) == 1 then
-      cc = c
-    end
-  end
-  if cc ~= "" then
-    vim.health.ok("C compiler: " .. cc)
+  if tc.cc.ok then
+    vim.health.ok("C compiler")
   else
-    vim.health.warn("no C compiler: treesitter parsers can't be built", "run " .. installer)
+    vim.health.warn("no C compiler: treesitter parsers are skipped", { tc.cc.hint, "or run " .. installer })
   end
 end
 
