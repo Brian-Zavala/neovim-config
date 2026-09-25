@@ -5,6 +5,15 @@
 -- `lspconfig.X.setup()` here (that registers a second client).
 -- (Interactive interpreter selection is handled by venv-selector.nvim.)
 return {
+  -- venv-selector (lang.python extra) needs fd and errors on every Python
+  -- file without it. Load it only when fd is installed (see :checkhealth config).
+  {
+    "linux-cultist/venv-selector.nvim",
+    optional = true,
+    cond = function()
+      return vim.fn.executable("fd") == 1 or vim.fn.executable("fdfind") == 1
+    end,
+  },
   {
     "neovim/nvim-lspconfig",
     opts = {
